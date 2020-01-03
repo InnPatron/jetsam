@@ -1,0 +1,12 @@
+[package]
+name = "plank"
+version = "0.1.0"
+authors = ["Alexander Vo <randomcivvy0121@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+swc_common = "0.4.4"
+swc_ecma_ast = "0.13.0"
+swc_ecma_parser = "0.15.1"
