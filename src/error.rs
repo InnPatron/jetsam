@@ -16,6 +16,7 @@ pub enum BindGenErrorKind {
 
 #[derive(Debug, Clone)]
 pub enum UnsupportedFeature {
+    DefaultExport,
     TsImportEquals,
     TsExportAssignment,
     TsNamespaceExport,

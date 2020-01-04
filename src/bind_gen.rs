@@ -38,7 +38,7 @@ fn process_module_item(
 fn process_module_decl(
     context: &mut Context,
     decl: ModuleDecl
-    ) -> Result<Dependency, BindGenError> {
+    ) -> Result<Option<Dependency>, BindGenError> {
 
     // TODO: Collect span info?
     match decl {
@@ -47,21 +47,35 @@ fn process_module_decl(
         ModuleDecl::Import(ImportDecl {
             src,
             ..
-        }) => Ok(Dependency(src)),
+        }) => Ok(Some(Dependency(src))),
 
         // TODO: Collect items for re-export
         ModuleDecl::ExportDecl(ExportDecl { .. }) => todo!(),
 
-        ModuleDecl::ExportNamed(NamedExport) => todo!(),
-
-        ModuleDecl::ExportDefaultDecl(ExportDefaultDecl) => todo!(),
-
-        ModuleDecl::ExportDefaultExpr(ExportDefaultExpr) => todo!(),
+        // TODO: Collect items for re-export
+        ModuleDecl::ExportNamed(NamedExport {
+            src,
+            ..
+        }) => Ok(src.map(|src| Dependency(src))),
 
         ModuleDecl::ExportAll(ExportAll {
             src,
             ..
-        }) => Ok(Dependency(src)),
+        }) => Ok(Some(Dependency(src))),
+
+        ModuleDecl::ExportDefaultDecl(ExportDefaultDecl { span, .. }) => {
+            Err(BindGenError {
+                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultExport),
+                span,
+            })
+        }
+
+        ModuleDecl::ExportDefaultExpr(ExportDefaultExpr { span, .. }) => {
+            Err(BindGenError {
+                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultExport),
+                span,
+            })
+        }
 
         ModuleDecl::TsImportEquals(TsImportEqualsDecl { span, .. }) => {
             Err(BindGenError {
@@ -86,8 +100,5 @@ fn process_module_decl(
                 span,
             })
         }
-
-
-        _ => todo!(),
     }
 }
