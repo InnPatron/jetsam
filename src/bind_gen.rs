@@ -1,14 +1,31 @@
+use std::collections::HashMap;
 use std::path::{PathBuf, Path};
 
 use swc_ecma_ast::*;
 use super::structures::*;
 use super::error::*;
 
-pub struct Context {
-    pub module_path: PathBuf,
+struct Context {
+    module_path: PathBuf,
+    scope: Scope,
+    typing_env: TypeEnv,
 }
 
-pub fn process_module(mut context: self::Context, module: Module) -> Result<BindingModule, BindGenError> {
+struct Scope {
+    map: HashMap<String, ()>,
+}
+
+struct TypeEnv {
+    map: HashMap<String, ()>,
+}
+
+pub fn process_module(module_path: PathBuf, module: Module) -> Result<BindingModule, BindGenError> {
+
+    let mut context = Context {
+        module_path,
+        scope: Scope { map: HashMap::new() },
+        typing_env: TypeEnv { map: HashMap::new() },
+    };
 
     let mut depedencies: Vec<Dependency> = Vec::new();
     for module_item in module.body {
@@ -35,9 +52,9 @@ fn process_module_item(
     todo!();
 }
 
-fn process_module_decl(
+fn module_item_dependency(
     context: &mut Context,
-    decl: ModuleDecl
+    decl: &ModuleDecl
     ) -> Result<Option<Dependency>, BindGenError> {
 
     // TODO: Collect span info?
@@ -45,59 +62,59 @@ fn process_module_decl(
 
         // TODO: Collect import names for later?
         ModuleDecl::Import(ImportDecl {
-            src,
+            ref src,
             ..
-        }) => Ok(Some(Dependency(src))),
+        }) => Ok(Some(Dependency(src.clone()))),
 
         // TODO: Collect items for re-export
         ModuleDecl::ExportDecl(ExportDecl { .. }) => todo!(),
 
         // TODO: Collect items for re-export
         ModuleDecl::ExportNamed(NamedExport {
-            src,
+            ref src,
             ..
-        }) => Ok(src.map(|src| Dependency(src))),
+        }) => Ok(src.as_ref().map(|src| Dependency(src.clone()))),
 
         ModuleDecl::ExportAll(ExportAll {
-            src,
+            ref src,
             ..
-        }) => Ok(Some(Dependency(src))),
+        }) => Ok(Some(Dependency(src.clone()))),
 
-        ModuleDecl::ExportDefaultDecl(ExportDefaultDecl { span, .. }) => {
+        ModuleDecl::ExportDefaultDecl(ExportDefaultDecl { ref span, .. }) => {
             Err(BindGenError {
                 kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultExport),
-                span,
+                span: span.clone(),
             })
         }
 
-        ModuleDecl::ExportDefaultExpr(ExportDefaultExpr { span, .. }) => {
+        ModuleDecl::ExportDefaultExpr(ExportDefaultExpr { ref span, .. }) => {
             Err(BindGenError {
                 kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultExport),
-                span,
+                span: span.clone(),
             })
         }
 
-        ModuleDecl::TsImportEquals(TsImportEqualsDecl { span, .. }) => {
+        ModuleDecl::TsImportEquals(TsImportEqualsDecl { ref span, .. }) => {
             Err(BindGenError {
                 kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::TsImportEquals),
-                span,
+                span: span.clone(),
             })
         }
 
-        ModuleDecl::TsExportAssignment(TsExportAssignment { span, .. }) => {
+        ModuleDecl::TsExportAssignment(TsExportAssignment { ref span, .. }) => {
             Err(BindGenError {
                 kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::TsExportAssignment),
-                span,
+                span: span.clone(),
             })
         }
 
-        ModuleDecl::TsNamespaceExport(TsNamespaceExportDecl { span, .. }) => {
+        ModuleDecl::TsNamespaceExport(TsNamespaceExportDecl { ref span, .. }) => {
 
             // TODO: Handle TsNamespaceExport?
             //   What is TsNamespaceExport??
             Err(BindGenError {
                 kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::TsNamespaceExport),
-                span,
+                span: span.clone(),
             })
         }
     }
