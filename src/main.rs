@@ -1,3 +1,7 @@
+mod error;
+mod bind_gen;
+mod structures;
+
 use std::sync::Arc;
 use std::path::Path;
 
