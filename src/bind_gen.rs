@@ -1,31 +1,74 @@
 use std::collections::HashMap;
 use std::path::{PathBuf, Path};
 
+use swc_common::{
+    errors::{ColorConfig, Handler},
+    FileName, FilePathMapping, SourceMap, Span
+};
+use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, TsConfig, JscTarget};
 use swc_ecma_ast::*;
 use super::structures::*;
 use super::error::*;
 
-struct Context {
-    module_path: PathBuf,
-    scope: Scope,
-    typing_env: TypeEnv,
+pub struct Context<'a> {
+    pub module_path: PathBuf,
+    pub scope: Scope,
+    pub typing_env: TypeEnv,
+    pub session: Session<'a>,
 }
 
-struct Scope {
+pub struct Scope {
     map: HashMap<String, ()>,
 }
 
-struct TypeEnv {
+pub struct TypeEnv {
     map: HashMap<String, ()>,
 }
 
-pub fn process_module(module_path: PathBuf, module: Module) -> Result<BindingModule, BindGenError> {
+pub fn open_module(context: &Context, source_map: SourceMap, module_path: &Path, span: Option<Span>)
+    -> Result<Module, BindGenError> {
+    use swc_common::{BytePos, SyntaxContext};
 
-    let mut context = Context {
-        module_path,
-        scope: Scope { map: HashMap::new() },
-        typing_env: TypeEnv { map: HashMap::new() },
-    };
+    let span = span
+        .unwrap_or(Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()));
+
+    let file_handle = source_map
+        .load_file(module_path)
+        .map_err(|io_err| {
+            BindGenError {
+                kind: BindGenErrorKind::IoError(module_path.to_path_buf(), io_err),
+                span: span.clone(),
+            }
+        })?;
+
+    let session = context.session;
+    let lexer = Lexer::new(
+        session,
+        Syntax::Typescript(TsConfig {
+            tsx: false,
+            decorators: false,
+            dynamic_import: false,
+        }),
+        JscTarget::Es2018,
+        SourceFileInput::from(&*file_handle),
+        None,
+    );
+
+    let mut parser = Parser::new_from(session, lexer);
+
+    parser
+        .parse_module()
+        .map_err(|mut e| {
+            e.emit();
+
+            BindGenError {
+                kind: BindGenErrorKind::ParserError,
+                span: span.clone(),
+            }
+        })
+}
+
+pub fn process_module(mut context: Context, module: Module) -> Result<BindingModule, BindGenError> {
 
     let mut depedencies: Vec<Dependency> = Vec::new();
     for module_item in module.body {
@@ -43,6 +86,8 @@ fn process_module_item(
 
     match item {
         ModuleItem::ModuleDecl(decl) => {
+            let dependency = module_item_dependency(context, &decl);
+            let _module =
             todo!();
         },
 
