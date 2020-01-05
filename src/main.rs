@@ -28,6 +28,7 @@ Some(cm.clone()));
         let module = bind_gen::open_module(&context, None)
             .expect("Failed to open module");
 
-        dbg!(module);
+        let _ = bind_gen::process_module(context, module)
+            .expect("Bind gen failure");
     });
 }
