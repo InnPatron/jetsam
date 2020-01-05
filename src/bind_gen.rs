@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::{PathBuf, Path};
 use std::sync::Arc;
+use std::cell::Cell;
 
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -10,6 +11,20 @@ use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, Ts
 use swc_ecma_ast::*;
 use super::structures::*;
 use super::error::*;
+
+thread_local! {
+    static type_id_counter: Cell<u64> = Cell::new(0);
+}
+
+fn new_type_id() -> TypeId {
+    type_id_counter.with(|cell| {
+        let get = cell.get();
+        cell.set(get + 1);
+
+        TypeId(get)
+    })
+}
+
 
 pub struct Context<'a> {
     module_path: PathBuf,
