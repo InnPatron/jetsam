@@ -3,7 +3,7 @@ mod bind_gen;
 mod structures;
 
 use std::sync::Arc;
-use std::path::Path;
+use std::path::PathBuf;
 
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -18,35 +18,16 @@ fn main() {
             Handler::with_tty_emitter(ColorConfig::Auto, true, false,
 Some(cm.clone()));
 
-        let session = Session { handler: &handler };
+        let path = PathBuf::from("../ts-tests/src/type_alias.d.ts");
+        let context =
+            bind_gen::Context::new(
+                path.clone(),
+                &handler,
+                cm.clone(),
+            );
+        let module = bind_gen::open_module(&context, path.as_path(), None)
+            .expect("Failed to open module");
 
-        // Real usage
-        let fm = cm
-             .load_file(Path::new("../three.js/src/utils.d.ts"))
-             .expect("failed to load test");
-
-        let lexer = Lexer::new(
-            session,
-            Syntax::Typescript(TsConfig {
-                tsx: false,
-                decorators: false,
-                dynamic_import: false,
-            }),
-            JscTarget::Es2018,
-            SourceFileInput::from(&*fm),
-            None,
-        );
-
-        let mut parser = Parser::new_from(session, lexer);
-
-        let _module = parser
-            .parse_module()
-            .map_err(|mut e| {
-                e.emit();
-                ()
-            })
-            .expect("failed to parser module");
-
-        dbg!(&_module);
+        dbg!(module);
     });
 }
