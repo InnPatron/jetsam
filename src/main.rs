@@ -21,11 +21,11 @@ Some(cm.clone()));
         let path = PathBuf::from("../ts-tests/src/type_alias.d.ts");
         let context =
             bind_gen::Context::new(
-                path.clone(),
+                path,
                 &handler,
                 cm.clone(),
             );
-        let module = bind_gen::open_module(&context, path.as_path(), None)
+        let module = bind_gen::open_module(&context, None)
             .expect("Failed to open module");
 
         dbg!(module);

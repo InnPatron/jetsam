@@ -70,7 +70,6 @@ impl TypeEnv {
 }
 
 pub fn open_module(context: &Context,
-    module_path: &Path,
     span: Option<Span>,
     ) -> Result<Module, BindGenError> {
     use swc_common::{BytePos, SyntaxContext};
@@ -79,10 +78,10 @@ pub fn open_module(context: &Context,
         .unwrap_or(Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()));
 
     let file_handle = context.source_map
-        .load_file(module_path)
+        .load_file(context.module_path.as_path())
         .map_err(|io_err| {
             BindGenError {
-                kind: BindGenErrorKind::IoError(module_path.to_path_buf(), io_err),
+                kind: BindGenErrorKind::IoError(context.module_path.clone(), io_err),
                 span: span.clone(),
             }
         })?;
