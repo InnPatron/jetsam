@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use swc_common::Span;
 use swc_ecma_ast::Str;
@@ -6,6 +7,42 @@ use swc_ecma_ast::Str;
 pub struct BindingModule {
     dependencies: Vec<Dependency>,
 }
+
+pub struct ModuleInfo {
+    path: PathBuf,
+    exports: HashMap<String, OwnedItem>,
+}
+
+impl ModuleInfo {
+    pub fn new(path: PathBuf) -> Self {
+        ModuleInfo {
+            exports: HashMap::new(),
+            path,
+        }
+    }
+
+    pub fn insert(&mut self, key: String, item: OwnedItem) {
+        if self.exports.insert(key.clone(), item).is_some() {
+            panic!("Duplicate exported key (\"{}\") in `{}`. Should not occur if passing static analysis.",
+                key,
+                self.path.display());
+        }
+    }
+
+    pub fn merge(&mut self, other: Self) {
+        for (exported_key, owned_item) in other.exports.into_iter() {
+            if self.exports.insert(exported_key.clone(), owned_item).is_some() {
+                panic!("Duplicate exported key (\"{}\") from `{}` conflicting with key in `{}`.\
+                    Should not occur if passing static analysis.",
+                    exported_key,
+                    other.path.display(),
+                    self.path.display(),
+                );
+            }
+        }
+    }
+}
+
 
 /// Declared inside the current module
 #[derive(Debug, Clone)]
