@@ -4,15 +4,21 @@ use std::path::PathBuf;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
+pub struct TypeId(pub u64);
+
 pub struct ModuleInfo {
     path: PathBuf,
+    // TODO: Use TypeId
     exports: HashMap<String, OwnedItem>,
+    // TODO:
+    private_types: Vec<(TypeId, TypeAst)>,
 }
 
 impl ModuleInfo {
     pub fn new(path: PathBuf) -> Self {
         ModuleInfo {
             exports: HashMap::new(),
+            private_types: Vec::new(),
             path,
         }
     }
@@ -43,7 +49,8 @@ impl ModuleInfo {
         self.insert(insert_key, item);
     }
 
-    pub fn merge(&mut self, other: Self) {
+    pub fn merge(&mut self, mut other: Self) {
+        self.private_types.append(&mut other.private_types);
         for (exported_key, owned_item) in other.exports.into_iter() {
 
             self.exports.insert(exported_key, owned_item);
