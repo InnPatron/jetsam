@@ -12,11 +12,11 @@ use super::structures::*;
 use super::error::*;
 
 pub struct Context<'a> {
-    pub module_path: PathBuf,
-    pub scope: Scope,
-    pub typing_env: TypeEnv,
-    pub source_map: Arc<SourceMap>,
-    pub session: Session<'a>,
+    module_path: PathBuf,
+    scope: Scope,
+    typing_env: TypeEnv,
+    source_map: Arc<SourceMap>,
+    session: Session<'a>,
 }
 
 impl<'a> Context<'a> {
