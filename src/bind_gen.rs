@@ -20,10 +20,12 @@ pub struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    pub fn new(module_path: PathBuf, handler: &'a Handler, source_map: Arc<SourceMap>) -> Self {
+    pub fn new(mut module_path: PathBuf, handler: &'a Handler, source_map: Arc<SourceMap>) -> Self {
         let session = Session {
             handler,
         };
+
+        Context::prepare_path(&mut module_path);
 
         Context {
             module_path,
@@ -34,9 +36,29 @@ impl<'a> Context<'a> {
         }
     }
 
-    fn fork(&self, new_module: PathBuf) -> Self {
+    fn prepare_path(path: &mut PathBuf) {
+        if path.file_name().is_none() {
+            panic!("Module path must contain a file");
+        }
+
+        if path.extension().is_none() {
+            path.set_extension("d.ts");
+        }
+    }
+
+    fn fork(&self, relative_path_to_module: PathBuf) -> Self {
+
+        let module_path = {
+            let mut current_path = self.module_path.clone();
+            current_path.pop();
+            let mut current_path = current_path.join(relative_path_to_module);
+
+            Context::prepare_path(&mut current_path);
+            current_path
+        };
+
         Context {
-            module_path: new_module,
+            module_path,
             scope: Scope::new(),
             typing_env: TypeEnv::new(),
             source_map: self.source_map.clone(),
