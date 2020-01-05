@@ -15,6 +15,7 @@ pub struct BindGenError {
 pub enum BindGenErrorKind {
     UnsupportedFeature(UnsupportedFeature),
     IoError(PathBuf, IoError),
+    ParserError,
 }
 
 #[derive(Debug)]
