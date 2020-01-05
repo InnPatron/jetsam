@@ -131,8 +131,14 @@ fn process_module_item(
 
     match item {
         ModuleItem::ModuleDecl(decl) => {
-            let dependency = module_item_dependency(context, &decl);
-            let _module =
+            let dependency = module_item_dependency(context, &decl)?;
+            if let Some(dependency) = dependency {
+                let module_path = PathBuf::from(dependency.0.value.to_string());
+                let context = context.fork(module_path);
+                // TODO: Get dependency span
+                let module = open_module(&context, None)?;
+                dbg!(module);
+            }
             todo!();
         },
 
