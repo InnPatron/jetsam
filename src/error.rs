@@ -1,20 +1,23 @@
 use std::error::Error;
+use std::io::Error as IoError;
+use std::path::PathBuf;
 use std::fmt::Display;
 
 use swc_common::Span;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BindGenError {
     pub kind: BindGenErrorKind,
     pub span: Span,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum BindGenErrorKind {
     UnsupportedFeature(UnsupportedFeature),
+    IoError(PathBuf, IoError),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum UnsupportedFeature {
     DefaultExport,
     TsImportEquals,
