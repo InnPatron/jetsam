@@ -91,6 +91,20 @@ impl TypeEnv {
     }
 }
 
+fn open_from_src<'a, 'b>(
+    original_context: &'a Context<'b>,
+    src: &Str,
+    span: Span
+    ) -> Result<(Context<'b>, Module), BindGenError> {
+
+    let path = PathBuf::from(src.value.to_string());
+    let context = original_context.fork(path);
+
+    let module = open_module(&context, Some(span))?;
+
+    Ok((context, module))
+}
+
 pub fn open_module(context: &Context,
     span: Option<Span>,
     ) -> Result<Module, BindGenError> {
@@ -135,68 +149,122 @@ pub fn open_module(context: &Context,
         })
 }
 
-pub fn process_module(mut context: Context, module: Module) -> Result<BindingModule, BindGenError> {
+pub fn process_module(mut context: Context, module: Module) -> Result<ModuleInfo, BindGenError> {
 
-    let mut depedencies: Vec<Dependency> = Vec::new();
+    let mut module_info = ModuleInfo::new(context.module_path.clone());
     for module_item in module.body {
-        let result = process_module_item(&mut context, &mut depedencies, module_item)?;
+        let result = process_module_item(&mut context, &mut module_info, module_item)?;
     }
     todo!();
 }
 
 fn process_module_item(
     context: &mut Context,
-    dependencies: &mut Vec<Dependency>,
+    module_info: &mut ModuleInfo,
     item: ModuleItem,
     ) -> Result<(), BindGenError> {
 
 
     match item {
-        ModuleItem::ModuleDecl(decl) => {
-            let dependency = module_item_dependency(context, &decl)?;
-            if let Some(dependency) = dependency {
-                let module_path = PathBuf::from(dependency.0.value.to_string());
-                let context = context.fork(module_path);
-                // TODO: Get dependency span
-                let module = open_module(&context, None)?;
-                dbg!(module);
-            }
-            todo!();
-        },
+        ModuleItem::ModuleDecl(decl) => process_module_decl(context, module_info, decl),
 
         ModuleItem::Stmt(stmt) => todo!(),
     }
-
-    todo!();
 }
 
-fn module_item_dependency(
+fn process_module_decl(
     context: &mut Context,
-    decl: &ModuleDecl
-    ) -> Result<Option<Dependency>, BindGenError> {
+    module_info: &mut ModuleInfo,
+    decl: ModuleDecl
+    ) -> Result<(), BindGenError> {
 
     // TODO: Collect span info?
     match decl {
 
         // TODO: Collect import names for later?
         ModuleDecl::Import(ImportDecl {
-            ref src,
+            src,
+            span,
             ..
-        }) => Ok(Some(Dependency(src.clone()))),
+        }) => {
+            let (dep_context, dep_module) =
+                open_from_src(context, &src, span)?;
+            todo!();
+        }
 
         // TODO: Collect items for re-export
         ModuleDecl::ExportDecl(ExportDecl { .. }) => todo!(),
 
-        // TODO: Collect items for re-export
         ModuleDecl::ExportNamed(NamedExport {
-            ref src,
-            ..
-        }) => Ok(src.as_ref().map(|src| Dependency(src.clone()))),
+            src,
+            span,
+            specifiers,
+        }) => {
+
+            match src {
+                Some(src) => {
+                    let (dep_context, dep_module) =
+                        open_from_src(context, &src, span)?;
+                    let dep_module_info = process_module(dep_context, dep_module)?;
+
+                    for specifier in specifiers.into_iter() {
+                        match specifier {
+                            ExportSpecifier::Named(NamedExportSpecifier {
+                                orig,
+                                exported: exported_as,
+                                ..
+                            }) => {
+
+                                let exported_key = exported_as.map(|x| x.sym.to_string());
+                                let orig_key = orig.sym.to_string();
+                                module_info.merge_item(
+                                            &dep_module_info,
+                                            orig_key,
+                                            exported_key);
+                            },
+
+                            ExportSpecifier::Namespace(NamespaceExportSpecifier {
+                                span,
+                                ..
+                            }) => {
+                                return Err(BindGenError {
+                                    kind: BindGenErrorKind::UnsupportedFeature(
+                                              UnsupportedFeature::NamespaceExport),
+                                    span,
+                                });
+                            }
+
+                            ExportSpecifier::Default(..) => {
+                                return Err(BindGenError {
+                                    kind: BindGenErrorKind::UnsupportedFeature(
+                                              UnsupportedFeature::DefaultExport),
+                                    span,
+                                });
+                            }
+                        }
+                    }
+
+                    Ok(())
+                }
+
+                None => todo!(),
+            }
+        }
 
         ModuleDecl::ExportAll(ExportAll {
-            ref src,
+            src,
+            span,
             ..
-        }) => Ok(Some(Dependency(src.clone()))),
+        }) => {
+            let (dep_context, dep_module) =
+                open_from_src(context, &src, span)?;
+            let dep_module_info = process_module(dep_context, dep_module)?;
+
+            // Take all exports and merge into the current module
+            module_info.merge(dep_module_info);
+
+            Ok(())
+        }
 
         ModuleDecl::ExportDefaultDecl(ExportDefaultDecl { ref span, .. }) => {
             Err(BindGenError {
