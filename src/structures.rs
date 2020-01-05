@@ -11,11 +11,7 @@ pub struct BindingModule {
 #[derive(Debug, Clone)]
 pub enum OwnedItem {
 
-    Class {
-        name: Str,
-        constructor: TypeAst,
-        fields: HashMap<String, TypeAst>,
-    },
+    Class(TypeAst),
 
     Function {
         name: Str,
@@ -33,7 +29,20 @@ pub struct Dependency(pub Str);
 
 #[derive(Debug, Clone)]
 pub enum TypeAst {
-    Fn(Str, FnType),
+    Fn {
+        origin: Str,
+        type_signaure: FnType,
+    },
+    Class{
+        name: Str,
+        origin: Str,
+        constructor: Box<TypeAst>,
+        fields: HashMap<String, TypeAst>,
+    },
+    Interface {
+        origin: Str,
+        fields: HashMap<String, TypeAst>,
+    },
     Binding(BindingType),
     Array(Box<TypeAst>),
     Primitive(PrimitiveType),
