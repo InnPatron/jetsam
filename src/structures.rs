@@ -34,6 +34,15 @@ impl ModuleInfo {
         */
     }
 
+    pub fn merge_item(&mut self, other: &Self, other_key: String, as_key: Option<String>) {
+        let item = other.exports.get(&other_key)
+            .expect(&format!("Missing exported key \"{}\" from `{}`", &other_key, other.path.display()))
+            .clone();
+
+        let insert_key = as_key.unwrap_or(other_key);
+        self.insert(insert_key, item);
+    }
+
     pub fn merge(&mut self, other: Self) {
         for (exported_key, owned_item) in other.exports.into_iter() {
 
