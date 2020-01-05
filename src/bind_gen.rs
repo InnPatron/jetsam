@@ -17,12 +17,52 @@ pub struct Context<'a> {
     pub session: Session<'a>,
 }
 
+impl<'a> Context<'a> {
+    pub fn new(module_path: PathBuf, handler: &Handler) -> Self {
+        let session = Session {
+            handler,
+        };
+
+        Context {
+            module_path,
+            scope: Scope::new(),
+            typing_env: TypeEnv::new(),
+            session,
+        }
+    }
+
+    fn fork(&self, new_module: PathBuf) -> Self {
+        Context {
+            module_path: new_module,
+            scope: Scope::new(),
+            typing_env: TypeEnv::new(),
+            session: self.session,
+        }
+    }
+}
+
 pub struct Scope {
     map: HashMap<String, ()>,
 }
 
+impl Scope {
+    fn new() -> Self {
+        Scope {
+            map: HashMap::new(),
+        }
+    }
+}
+
 pub struct TypeEnv {
     map: HashMap<String, ()>,
+}
+
+impl TypeEnv {
+    fn new() -> Self {
+        TypeEnv {
+            map: HashMap::new(),
+        }
+    }
 }
 
 pub fn open_module(context: &Context, source_map: SourceMap, module_path: &Path, span: Option<Span>)
