@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::{PathBuf, Path};
+use std::sync::Arc;
 
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -14,11 +15,12 @@ pub struct Context<'a> {
     pub module_path: PathBuf,
     pub scope: Scope,
     pub typing_env: TypeEnv,
+    pub source_map: Arc<SourceMap>,
     pub session: Session<'a>,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(module_path: PathBuf, handler: &Handler) -> Self {
+    pub fn new(module_path: PathBuf, handler: &'a Handler, source_map: Arc<SourceMap>) -> Self {
         let session = Session {
             handler,
         };
@@ -28,6 +30,7 @@ impl<'a> Context<'a> {
             scope: Scope::new(),
             typing_env: TypeEnv::new(),
             session,
+            source_map,
         }
     }
 
@@ -36,6 +39,7 @@ impl<'a> Context<'a> {
             module_path: new_module,
             scope: Scope::new(),
             typing_env: TypeEnv::new(),
+            source_map: self.source_map.clone(),
             session: self.session,
         }
     }
@@ -65,14 +69,16 @@ impl TypeEnv {
     }
 }
 
-pub fn open_module(context: &Context, source_map: SourceMap, module_path: &Path, span: Option<Span>)
-    -> Result<Module, BindGenError> {
+pub fn open_module(context: &Context,
+    module_path: &Path,
+    span: Option<Span>,
+    ) -> Result<Module, BindGenError> {
     use swc_common::{BytePos, SyntaxContext};
 
     let span = span
         .unwrap_or(Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()));
 
-    let file_handle = source_map
+    let file_handle = context.source_map
         .load_file(module_path)
         .map_err(|io_err| {
             BindGenError {
