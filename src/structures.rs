@@ -4,10 +4,6 @@ use std::path::PathBuf;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
-pub struct BindingModule {
-    dependencies: Vec<Dependency>,
-}
-
 pub struct ModuleInfo {
     path: PathBuf,
     exports: HashMap<String, OwnedItem>,
@@ -22,15 +18,28 @@ impl ModuleInfo {
     }
 
     pub fn insert(&mut self, key: String, item: OwnedItem) {
+
+        self.exports.insert(key, item);
+
+        // The following passes tsc 3.7.4:
+        //   export { foo } from "module"
+        //   export * from "module"
+        //   export * from "module"         <- this line is not an accident
+        /*
         if self.exports.insert(key.clone(), item).is_some() {
             panic!("Duplicate exported key (\"{}\") in `{}`. Should not occur if passing static analysis.",
                 key,
                 self.path.display());
         }
+        */
     }
 
     pub fn merge(&mut self, other: Self) {
         for (exported_key, owned_item) in other.exports.into_iter() {
+
+            self.exports.insert(exported_key, owned_item);
+
+            /*
             if self.exports.insert(exported_key.clone(), owned_item).is_some() {
                 panic!("Duplicate exported key (\"{}\") from `{}` conflicting with key in `{}`.\
                     Should not occur if passing static analysis.",
@@ -39,6 +48,7 @@ impl ModuleInfo {
                     self.path.display(),
                 );
             }
+            */
         }
     }
 }
