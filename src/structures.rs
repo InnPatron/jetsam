@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
+#[derive(Clone, Copy, Debug)]
 pub struct TypeId(pub u64);
 
 pub struct ModuleInfo {
@@ -11,7 +12,7 @@ pub struct ModuleInfo {
     // TODO: Use TypeId
     exports: HashMap<String, OwnedItem>,
     // TODO:
-    private_types: Vec<(TypeId, TypeAst)>,
+    private_types: Vec<TypeId>,
 }
 
 impl ModuleInfo {
@@ -45,11 +46,13 @@ impl ModuleInfo {
             .expect(&format!("Missing exported key \"{}\" from `{}`", &other_key, other.path.display()))
             .clone();
 
+        // TODO: Do a check for private types
         let insert_key = as_key.unwrap_or(other_key);
         self.insert(insert_key, item);
     }
 
     pub fn merge(&mut self, mut other: Self) {
+        // TODO: Do a check for only used private types
         self.private_types.append(&mut other.private_types);
         for (exported_key, owned_item) in other.exports.into_iter() {
 
@@ -106,6 +109,7 @@ pub enum TypeAst {
         origin: Str,
         fields: HashMap<String, TypeAst>,
     },
+    TypeId(TypeId),
     Binding(BindingType),
     Array(Box<TypeAst>),
     Primitive(PrimitiveType),
