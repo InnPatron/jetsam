@@ -45,7 +45,7 @@ impl<'a> Context<'a> {
     }
 }
 
-pub struct Scope {
+struct Scope {
     map: HashMap<String, ()>,
 }
 
@@ -57,7 +57,7 @@ impl Scope {
     }
 }
 
-pub struct TypeEnv {
+struct TypeEnv {
     map: HashMap<String, ()>,
 }
 
