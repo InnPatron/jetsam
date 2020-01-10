@@ -86,10 +86,11 @@ impl<T> Scope<T> {
 }
 
 impl Scope<ValueMarker> {
-    fn try_import(&mut self, module: &ModuleInfo, key: &str) -> bool {
-        module.get_exported_value(key)
+    fn try_import(&mut self, module: &ModuleInfo, export_key: String, as_key: Option<String>) -> bool {
+        module.get_exported_value(&export_key)
             .map(|typ| {
-                self.map.insert(key.to_string(), typ.clone());
+                let key = as_key.unwrap_or(export_key.clone());
+                self.map.insert(key, typ.clone());
                 true
             })
         .unwrap_or(false)
@@ -97,10 +98,11 @@ impl Scope<ValueMarker> {
 }
 
 impl Scope<TypeMarker> {
-    fn try_import(&mut self, module: &ModuleInfo, key: &str) -> bool {
-        module.get_exported_type(key)
+    fn try_import(&mut self, module: &ModuleInfo, export_key: String, as_key: Option<String>) -> bool {
+        module.get_exported_type(&export_key)
             .map(|typ| {
-                self.map.insert(key.to_string(), typ.clone());
+                let key = as_key.unwrap_or(export_key.clone());
+                self.map.insert(key, typ.clone());
                 true
             })
         .unwrap_or(false)
@@ -221,15 +223,54 @@ fn process_module_decl(
     // TODO: Collect span info?
     match decl {
 
-        // TODO: Collect import names for later?
         ModuleDecl::Import(ImportDecl {
             src,
             span,
-            ..
+            specifiers,
         }) => {
+            // TODO: Module cache
             let (dep_context, dep_module) =
                 open_from_src(context, &src, span)?;
-            todo!();
+
+            let dep_module_info = process_module(dep_context, dep_module)?;
+
+            for specifier in specifiers {
+                match specifier {
+                    ImportSpecifier::Specific(ImportSpecific {
+                        span,
+                        local,
+                        imported,
+                    }) => {
+                        context.value_scope.try_import(
+                            &dep_module_info,
+                            local.sym.to_string(),
+                            imported.as_ref().map(|ident| ident.sym.to_string())
+                        );
+
+                        context.type_scope.try_import(
+                            &dep_module_info,
+                            local.sym.to_string(),
+                            imported.map(|ident| ident.sym.to_string())
+                        );
+                    }
+
+                    ImportSpecifier::Default(def) => {
+                        return Err(BindGenError {
+                            kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                            span: def.span,
+                        });
+                    }
+
+                    ImportSpecifier::Namespace(namespace) => {
+                        return Err(BindGenError {
+                            kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                            span: namespace.span,
+                        });
+                    }
+                }
+            }
+
+            Ok(())
         }
 
         // TODO: Collect items for re-export
