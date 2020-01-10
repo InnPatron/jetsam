@@ -21,6 +21,14 @@ impl ModuleInfo {
         }
     }
 
+    pub fn get_exported_value(&self, key: &str) -> Option<&Type> {
+        self.exported_values.get(key)
+    }
+
+    pub fn get_exported_type(&self, key: &str) -> Option<&Type> {
+        self.exported_types.get(key)
+    }
+
     pub fn export_value(&mut self, export_key: String, typ: Type) {
         self.exported_values.insert(export_key, typ);
     }
