@@ -165,13 +165,37 @@ pub fn open_module(context: &Context,
         })
 }
 
-pub fn process_module(mut context: Context, module: Module) -> Result<ModuleInfo, BindGenError> {
+pub fn process_module(mut context: Context, mut module: Module) -> Result<ModuleInfo, BindGenError> {
 
     let mut module_info = ModuleInfo::new(context.module_path.clone());
+
+    hoist_imports(&mut module);
     for module_item in module.body {
         let result = process_module_item(&mut context, &mut module_info, module_item)?;
     }
     todo!();
+}
+
+fn hoist_imports(module: &mut Module) {
+    use std::mem;
+
+    let capacity = module.body.len();
+
+    let mut module_items = Vec::with_capacity(capacity);
+    mem::swap(&mut module_items, &mut module.body);
+
+    let mut other_buffer = Vec::with_capacity(capacity);
+
+    for module_item in module_items {
+        match module_item {
+            import @ ModuleItem::ModuleDecl(ModuleDecl::Import(..))
+                => module.body.push(import),
+
+            other => other_buffer.push(other),
+        }
+    }
+
+    module.body.append(&mut other_buffer);
 }
 
 fn process_module_item(
