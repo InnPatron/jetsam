@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::path::{PathBuf, Path};
 use std::sync::Arc;
-use std::cell::Cell;
 
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -12,24 +11,14 @@ use swc_ecma_ast::*;
 use super::structures::*;
 use super::error::*;
 
-thread_local! {
-    static type_id_counter: Cell<u64> = Cell::new(0);
-}
-
-fn new_type_id() -> TypeId {
-    type_id_counter.with(|cell| {
-        let get = cell.get();
-        cell.set(get + 1);
-
-        TypeId(get)
-    })
-}
-
+// Marker types
+struct ValueMarker;
+struct TypeMarker;
 
 pub struct Context<'a> {
     module_path: PathBuf,
-    scope: Scope,
-    typing_env: TypeEnv,
+    value_scope: Scope<ValueMarker>,
+    type_scope: Scope<TypeMarker>,
     source_map: Arc<SourceMap>,
     session: Session<'a>,
 }
@@ -44,8 +33,8 @@ impl<'a> Context<'a> {
 
         Context {
             module_path,
-            scope: Scope::new(),
-            typing_env: TypeEnv::new(),
+            value_scope: Scope::new(),
+            type_scope: Scope::new(),
             session,
             source_map,
         }
@@ -74,34 +63,40 @@ impl<'a> Context<'a> {
 
         Context {
             module_path,
-            scope: Scope::new(),
-            typing_env: TypeEnv::new(),
+            value_scope: Scope::new(),
+            type_scope: Scope::new(),
             source_map: self.source_map.clone(),
             session: self.session,
         }
     }
 }
 
-struct Scope {
-    map: HashMap<String, ()>,
+struct Scope<T> {
+    map: HashMap<String, Type>,
+    marker: std::marker::PhantomData<T>,
 }
 
-impl Scope {
+impl<T> Scope<T> {
     fn new() -> Self {
         Scope {
             map: HashMap::new(),
+            marker: std::marker::PhantomData,
         }
     }
 }
 
-struct TypeEnv {
-    map: HashMap<String, ()>,
+impl Scope<ValueMarker> {
+    fn try_import(&mut self, module: &ModuleInfo, key: &str) {
+        if let Some(typ) =  module.get_exported_value(key) {
+            self.map.insert(key.to_string(), typ.clone());
+        }
+    }
 }
 
-impl TypeEnv {
-    fn new() -> Self {
-        TypeEnv {
-            map: HashMap::new(),
+impl Scope<TypeMarker> {
+    fn try_import(&mut self, module: &ModuleInfo, key: &str) {
+        if let Some(typ) =  module.get_exported_type(key) {
+            self.map.insert(key.to_string(), typ.clone());
         }
     }
 }
