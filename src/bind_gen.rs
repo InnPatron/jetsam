@@ -232,7 +232,7 @@ fn process_module_decl(
 
                                 let exported_key = exported_as.map(|x| x.sym.to_string());
                                 let orig_key = orig.sym.to_string();
-                                module_info.merge_item(
+                                module_info.merge_export(
                                             &dep_module_info,
                                             orig_key,
                                             exported_key);
@@ -276,7 +276,7 @@ fn process_module_decl(
             let dep_module_info = process_module(dep_context, dep_module)?;
 
             // Take all exports and merge into the current module
-            module_info.merge(dep_module_info);
+            module_info.merge_all(&dep_module_info);
 
             Ok(())
         }
