@@ -86,18 +86,24 @@ impl<T> Scope<T> {
 }
 
 impl Scope<ValueMarker> {
-    fn try_import(&mut self, module: &ModuleInfo, key: &str) {
-        if let Some(typ) =  module.get_exported_value(key) {
-            self.map.insert(key.to_string(), typ.clone());
-        }
+    fn try_import(&mut self, module: &ModuleInfo, key: &str) -> bool {
+        module.get_exported_value(key)
+            .map(|typ| {
+                self.map.insert(key.to_string(), typ.clone());
+                true
+            })
+        .unwrap_or(false)
     }
 }
 
 impl Scope<TypeMarker> {
-    fn try_import(&mut self, module: &ModuleInfo, key: &str) {
-        if let Some(typ) =  module.get_exported_type(key) {
-            self.map.insert(key.to_string(), typ.clone());
-        }
+    fn try_import(&mut self, module: &ModuleInfo, key: &str) -> bool {
+        module.get_exported_type(key)
+            .map(|typ| {
+                self.map.insert(key.to_string(), typ.clone());
+                true
+            })
+        .unwrap_or(false)
     }
 }
 
