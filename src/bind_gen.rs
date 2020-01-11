@@ -277,8 +277,10 @@ fn process_module_decl(
             Ok(())
         }
 
-        // TODO: Collect items for re-export
-        ModuleDecl::ExportDecl(ExportDecl { .. }) => todo!(),
+        ModuleDecl::ExportDecl(ExportDecl {
+            span,
+            decl,
+        }) => process_decl(context, module_info, decl, span),
 
         ModuleDecl::ExportNamed(NamedExport {
             src,
@@ -442,4 +444,14 @@ fn process_module_decl(
             })
         }
     }
+}
+
+fn process_decl(
+    context: &mut Context,
+    module_info: &mut ModuleInfo,
+    decl: Decl,
+    span: Span,
+    ) -> Result<(), BindGenError> {
+
+    todo!();
 }
