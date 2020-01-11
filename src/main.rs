@@ -11,14 +11,37 @@ use swc_common::{
 };
 use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, TsConfig, JscTarget};
 
+use clap::{Arg, App};
+
 fn main() {
-    swc_common::GLOBALS.set(&swc_common::Globals::new(), || {
+
+    let matches = App::new("plank")
+        .arg(Arg::with_name("INPUT")
+            .short("i")
+            .long("input")
+            .value_name("ROOT_MODULE")
+            .takes_value(true)
+            .required(true))
+        .arg(Arg::with_name("OUTPUT")
+            .short("o")
+            .long("output")
+            .value_name("DIR_PATH")
+            .takes_value(true)
+            .required(false))
+        .get_matches();
+
+    let input_path =
+        matches.value_of("INPUT").expect("No input root module");
+
+    let path = PathBuf::from(input_path);
+
+
+    swc_common::GLOBALS.set(&swc_common::Globals::new(), move || {
         let cm: Arc<SourceMap> = Default::default();
         let handler =
             Handler::with_tty_emitter(ColorConfig::Auto, true, false,
 Some(cm.clone()));
 
-        let path = PathBuf::from("../ts-tests/src/type_alias.d.ts");
         let context =
             bind_gen::Context::new(
                 path,
