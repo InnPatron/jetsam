@@ -133,6 +133,8 @@ pub enum PrimitiveType {
     Object,
     Any,
     Never,
+    Undefined,
+    Null,
 }
 
 #[derive(Debug, Clone)]

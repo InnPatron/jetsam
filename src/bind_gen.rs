@@ -524,7 +524,7 @@ fn type_from_ann(
     context: &Context,
     module_info: &ModuleInfo,
     ann: TsTypeAnn,
-) -> Result<Item, BindGenError> {
+) -> Result<Type, BindGenError> {
 
     let ann_span = ann.span;
 
@@ -533,7 +533,23 @@ fn type_from_ann(
             span,
             kind,
         }) => {
-            todo!("ts keyword type");
+
+            let prim_type = match kind {
+                TsKeywordTypeKind::TsAnyKeyword => PrimitiveType::Any,
+                TsKeywordTypeKind::TsUnknownKeyword => todo!("unknown keyword type"),
+                TsKeywordTypeKind::TsNumberKeyword => PrimitiveType::Number,
+                TsKeywordTypeKind::TsObjectKeyword => PrimitiveType::Object,
+                TsKeywordTypeKind::TsBooleanKeyword => PrimitiveType::Boolean,
+                TsKeywordTypeKind::TsBigIntKeyword => todo!("big int keyword type"),
+                TsKeywordTypeKind::TsStringKeyword => PrimitiveType::String,
+                TsKeywordTypeKind::TsSymbolKeyword => todo!("symbol keyword type"),
+                TsKeywordTypeKind::TsVoidKeyword => PrimitiveType::Void,
+                TsKeywordTypeKind::TsUndefinedKeyword => PrimitiveType::Undefined,
+                TsKeywordTypeKind::TsNullKeyword => PrimitiveType::Null,
+                TsKeywordTypeKind::TsNeverKeyword => PrimitiveType::Never,
+            };
+
+            Ok(Type::Primitive(prim_type))
         },
 
         TsType::TsThisType(TsThisType {
