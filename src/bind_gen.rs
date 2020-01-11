@@ -520,6 +520,27 @@ fn process_decl(
     }
 }
 
+fn type_from_pattern(
+    context: &Context,
+    module_info: &ModuleInfo,
+    pattern: Pat,
+) -> Result<Type, BindGenError> {
+    // TODO: Perform basic type inference?
+    let ann: Option<_> = match pattern {
+        Pat::Ident(ident) => ident.type_ann,
+        Pat::Array(array_pat) => array_pat.type_ann,
+        Pat::Rest(rest_pat) => rest_pat.type_ann,
+        Pat::Object(object_pat) => object_pat.type_ann,
+        Pat::Assign(assign_pat) => assign_pat.type_ann,
+        Pat::Invalid(invalid) => todo!("Invalid pattern {:?}", invalid),
+        Pat::Expr(expr) => todo!("What is an expr pattern"),
+    };
+
+    ann
+        .map(|ann| type_from_ann(context, module_info, ann))
+        .unwrap_or(Ok(Type::Primitive(PrimitiveType::Any)))
+}
+
 fn type_from_ann(
     context: &Context,
     module_info: &ModuleInfo,
