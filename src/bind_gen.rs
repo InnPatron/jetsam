@@ -280,7 +280,10 @@ fn process_module_decl(
         ModuleDecl::ExportDecl(ExportDecl {
             span,
             decl,
-        }) => process_decl(context, module_info, decl, span),
+        }) => {
+            let decl_item = process_decl(context, module_info, decl, span);
+            todo!();
+        }
 
         ModuleDecl::ExportNamed(NamedExport {
             src,
@@ -427,11 +430,92 @@ fn process_module_decl(
 }
 
 fn process_decl(
-    context: &mut Context,
-    module_info: &mut ModuleInfo,
+    context: &Context,
+    module_info: &ModuleInfo,
     decl: Decl,
     span: Span,
-    ) -> Result<(), BindGenError> {
+    ) -> Result<Item, BindGenError> {
 
-    todo!();
+    match decl {
+        Decl::Class(ClassDecl {
+            ident,
+            class: Class {
+                span,
+                body,
+                type_params,
+                ..
+            },
+            ..
+        }) => {
+            // TODO: Type parameters
+            // TODO: Subtyping relations?
+            // TODO: Implements?
+
+            todo!();
+        },
+
+        Decl::Fn(FnDecl {
+            ident,
+            function: Function {
+                span,
+                params,
+                is_generator,
+                is_async,
+                return_type,
+                type_params,
+                ..
+            },
+            ..
+        }) => {
+            // TODO: Type parameters
+
+            todo!();
+        },
+
+        Decl::Var(VarDecl {
+            decls,
+            ..
+        }) => {
+            todo!();
+        },
+
+        Decl::TsInterface(TsInterfaceDecl {
+            id,
+            span,
+            body,
+            type_params,
+            ..
+        }) => {
+            // TODO: Type parameters
+            // TODO: Implements?
+
+            todo!();
+        },
+
+        Decl::TsTypeAlias(TsTypeAliasDecl {
+            span,
+            id,
+            type_ann,
+            type_params,
+            ..
+        }) => {
+            // TODO: Type parameters
+
+            todo!();
+        },
+
+        Decl::TsEnum(TsEnumDecl {
+            span,
+            id,
+            ..
+        }) => {
+            // TODO: Care about inhabitants?
+
+            todo!();
+        },
+
+        Decl::TsModule(..) => {
+            todo!("TS modules not sup");
+        },
+    }
 }

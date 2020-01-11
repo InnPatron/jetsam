@@ -73,6 +73,37 @@ impl ModuleInfo {
     }
 }
 
+pub enum Item {
+    Class {
+        name: String,
+        typ: Type,
+    },
+    Fn {
+        name: String,
+        typ: Type,
+    },
+    Var{
+        name: String,
+        typ: Type,
+    },
+    TsInterface{
+        name: String,
+        typ: Type,
+    },
+    TsTypeAlias{
+        name: String,
+        typ: Type,
+    },
+    TsEnum{
+        name: String,
+        typ: Type,
+    },
+    TsModule {
+        name: String,
+        typ: Type,
+    },
+}
+
 #[derive(Debug, Clone)]
 pub enum Type {
     Fn {
