@@ -83,6 +83,10 @@ impl<T> Scope<T> {
             marker: std::marker::PhantomData,
         }
     }
+
+    fn get(&self, key: &str) -> Option<&Type> {
+        self.map.get(key)
+    }
 }
 
 impl Scope<ValueMarker> {
@@ -328,7 +332,60 @@ fn process_module_decl(
                     Ok(())
                 }
 
-                None => todo!(),
+                None => {
+                    for specifier in specifiers.into_iter() {
+                        match specifier {
+                            ExportSpecifier::Named(NamedExportSpecifier {
+                                orig,
+                                exported: exported_as,
+                                ..
+                            }) => {
+                                let exported_key = exported_as.map(|x| x.sym.to_string());
+                                let orig_key = orig.sym.to_string();
+
+                                let value_type = context.value_scope
+                                    .get(&orig_key)
+                                    .map(|v| v.clone());
+                                let type_item = context.type_scope
+                                    .get(&orig_key)
+                                    .map(|t| t.clone());
+
+                                if value_type.is_none() && type_item.is_none() {
+                                    panic!("Invalid export. No item named {} in scope", &orig_key);
+                                }
+
+                                if let Some(value_type) = value_type {
+                                    module_info.export_value(orig_key.clone(), value_type);
+                                }
+
+                                if let Some(type_item) = type_item {
+                                    module_info.export_type(orig_key, type_item);
+                                }
+                            },
+
+                            ExportSpecifier::Namespace(NamespaceExportSpecifier {
+                                span,
+                                ..
+                            }) => {
+                                return Err(BindGenError {
+                                    kind: BindGenErrorKind::UnsupportedFeature(
+                                              UnsupportedFeature::NamespaceExport),
+                                    span,
+                                });
+                            }
+
+                            ExportSpecifier::Default(..) => {
+                                return Err(BindGenError {
+                                    kind: BindGenErrorKind::UnsupportedFeature(
+                                              UnsupportedFeature::DefaultExport),
+                                    span,
+                                });
+                            }
+                        }
+                    }
+
+                    Ok(())
+                }
             }
         }
 
