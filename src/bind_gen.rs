@@ -288,107 +288,87 @@ fn process_module_decl(
             specifiers,
         }) => {
 
-            match src {
+            let mut exporter: Box<FnMut(String, Option<String>) -> ()> = match src {
+
+                // Open the source module and re-export an exported item
                 Some(src) => {
                     let (dep_context, dep_module) =
                         open_from_src(context, &src, span)?;
                     let dep_module_info = process_module(dep_context, dep_module)?;
 
-                    for specifier in specifiers.into_iter() {
-                        match specifier {
-                            ExportSpecifier::Named(NamedExportSpecifier {
-                                orig,
-                                exported: exported_as,
-                                ..
-                            }) => {
-
-                                let exported_key = exported_as.map(|x| x.sym.to_string());
-                                let orig_key = orig.sym.to_string();
-                                module_info.merge_export(
-                                            &dep_module_info,
-                                            orig_key,
-                                            exported_key);
-                            },
-
-                            ExportSpecifier::Namespace(NamespaceExportSpecifier {
-                                span,
-                                ..
-                            }) => {
-                                return Err(BindGenError {
-                                    kind: BindGenErrorKind::UnsupportedFeature(
-                                              UnsupportedFeature::NamespaceExport),
-                                    span,
-                                });
-                            }
-
-                            ExportSpecifier::Default(..) => {
-                                return Err(BindGenError {
-                                    kind: BindGenErrorKind::UnsupportedFeature(
-                                              UnsupportedFeature::DefaultExport),
-                                    span,
-                                });
-                            }
-                        }
-                    }
-
-                    Ok(())
+                    Box::new(move |original_key: String, as_key: Option<String>| -> () {
+                        module_info.merge_export(
+                                    &dep_module_info,
+                                    original_key,
+                                    as_key);
+                    })
                 }
 
+                // Export an item from the current module
                 None => {
-                    for specifier in specifiers.into_iter() {
-                        match specifier {
-                            ExportSpecifier::Named(NamedExportSpecifier {
-                                orig,
-                                exported: exported_as,
-                                ..
-                            }) => {
-                                let exported_key = exported_as.map(|x| x.sym.to_string());
-                                let orig_key = orig.sym.to_string();
+                    Box::new(|original_key: String, as_key: Option<String>| -> () {
 
-                                let value_type = context.value_scope
-                                    .get(&orig_key)
-                                    .map(|v| v.clone());
-                                let type_item = context.type_scope
-                                    .get(&orig_key)
-                                    .map(|t| t.clone());
+                        let as_key = as_key.unwrap_or(original_key.clone());
 
-                                if value_type.is_none() && type_item.is_none() {
-                                    panic!("Invalid export. No item named {} in scope", &orig_key);
-                                }
+                        let value_type = context.value_scope
+                            .get(&original_key)
+                            .map(|v| v.clone());
+                        let type_item = context.type_scope
+                            .get(&original_key)
+                            .map(|t| t.clone());
 
-                                if let Some(value_type) = value_type {
-                                    module_info.export_value(orig_key.clone(), value_type);
-                                }
-
-                                if let Some(type_item) = type_item {
-                                    module_info.export_type(orig_key, type_item);
-                                }
-                            },
-
-                            ExportSpecifier::Namespace(NamespaceExportSpecifier {
-                                span,
-                                ..
-                            }) => {
-                                return Err(BindGenError {
-                                    kind: BindGenErrorKind::UnsupportedFeature(
-                                              UnsupportedFeature::NamespaceExport),
-                                    span,
-                                });
-                            }
-
-                            ExportSpecifier::Default(..) => {
-                                return Err(BindGenError {
-                                    kind: BindGenErrorKind::UnsupportedFeature(
-                                              UnsupportedFeature::DefaultExport),
-                                    span,
-                                });
-                            }
+                        if value_type.is_none() && type_item.is_none() {
+                            panic!("Invalid export. No item named {} in scope", &original_key);
                         }
+
+                        if let Some(value_type) = value_type {
+                            module_info.export_value(as_key.clone(), value_type);
+                        }
+
+                        if let Some(type_item) = type_item {
+                            module_info.export_type(as_key, type_item);
+                        }
+                    })
+                }
+            };
+
+            for specifier in specifiers.into_iter() {
+                match specifier {
+                    ExportSpecifier::Named(NamedExportSpecifier {
+                        orig,
+                        exported: exported_as,
+                        ..
+                    }) => {
+
+                        let orig_key = orig.sym.to_string();
+                        let exported_key = exported_as
+                            .map(|x| x.sym.to_string());
+
+                        exporter(orig_key, exported_key);
+                    },
+
+                    ExportSpecifier::Namespace(NamespaceExportSpecifier {
+                        span,
+                        ..
+                    }) => {
+                        return Err(BindGenError {
+                            kind: BindGenErrorKind::UnsupportedFeature(
+                                      UnsupportedFeature::NamespaceExport),
+                            span,
+                        });
                     }
 
-                    Ok(())
+                    ExportSpecifier::Default(..) => {
+                        return Err(BindGenError {
+                            kind: BindGenErrorKind::UnsupportedFeature(
+                                      UnsupportedFeature::DefaultExport),
+                            span,
+                        });
+                    }
                 }
             }
+
+            Ok(())
         }
 
         ModuleDecl::ExportAll(ExportAll {
