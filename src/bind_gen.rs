@@ -519,3 +519,140 @@ fn process_decl(
         },
     }
 }
+
+fn type_from_ann(
+    context: &Context,
+    module_info: &ModuleInfo,
+    ann: TsTypeAnn,
+) -> Result<Item, BindGenError> {
+
+    let ann_span = ann.span;
+
+    match *ann.type_ann {
+        TsType::TsKeywordType(TsKeywordType {
+            span,
+            kind,
+        }) => {
+            todo!("ts keyword type");
+        },
+
+        TsType::TsThisType(TsThisType {
+            span,
+        }) => {
+            todo!("What is TsThisType?");
+        },
+
+        TsType::TsFnOrConstructorType(TsFnOrConstructorType::TsFnType(TsFnType {
+            span,
+            params,
+            type_params,
+            type_ann,
+        })) => {
+            // What is type_ann
+            // Is type_ann the return type?
+            todo!("ts fn");
+        },
+
+        TsType::TsFnOrConstructorType(TsFnOrConstructorType::TsConstructorType(TsConstructorType {
+            span,
+            params,
+            type_params,
+            type_ann,
+        })) => {
+            // What is type_ann
+            // Is type_ann the return type?
+            todo!("ts constructor");
+        },
+
+        TsType::TsTypeRef(TsTypeRef {
+            span,
+            type_name,
+            type_params,
+        }) => {
+            todo!();
+        },
+
+        TsType::TsTypeQuery(_TsTypeQuery) => {
+            todo!("ts type query");
+        },
+
+        TsType::TsTypeLit(..) => {
+            todo!("ts type literals not supported");
+        },
+
+        TsType::TsArrayType(TsArrayType {
+            span,
+            elem_type,
+        }) => {
+            todo!("ts array type");
+        },
+
+        TsType::TsTupleType(TsTupleType {
+            span,
+            elem_types,
+        }) => {
+            todo!("ts tuple type");
+        },
+
+        TsType::TsOptionalType(..) => {
+            todo!("ts optional types not supported");
+        },
+
+        TsType::TsRestType(..) => {
+            todo!("ts rest types not supported");
+        },
+
+        TsType::TsUnionOrIntersectionType(TsUnionOrIntersectionType::TsUnionType(TsUnionType {
+            span,
+            types,
+        })) => {
+            todo!("ts union type");
+        },
+
+        TsType::TsUnionOrIntersectionType(TsUnionOrIntersectionType::TsIntersectionType(..)) => {
+            todo!("ts intersection types not supported");
+        },
+
+        TsType::TsConditionalType(..) => {
+            todo!("ts conditional types not supported");
+        },
+
+        TsType::TsInferType(..) => {
+            todo!("ts infer type not supported");
+        },
+
+        TsType::TsParenthesizedType(TsParenthesizedType {
+            span,
+            type_ann,
+        }) => {
+            todo!("parenthesized type");
+        },
+
+        TsType::TsTypeOperator(_TsTypeOperator) => {
+            todo!("type operators not supported");
+        },
+
+        TsType::TsIndexedAccessType(_TsIndexedAccessType) => {
+            todo!("ts indexed access type not supported");
+        },
+
+        TsType::TsMappedType(_TsMappedType) => {
+            todo!("ts mapped type not supported");
+        },
+
+        TsType::TsLitType(TsLitType {
+            span,
+            lit,
+        }) => {
+            todo!("ts lit type");
+        },
+
+        TsType::TsTypePredicate(_TsTypePredicate) => {
+            todo!("ts type predicates not supported?");
+        },
+
+        TsType::TsImportType(_TsImportType) => {
+            todo!("What is TsImportType?");
+        },
+    }
+}
