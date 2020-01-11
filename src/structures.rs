@@ -139,6 +139,6 @@ pub enum PrimitiveType {
 
 #[derive(Debug, Clone)]
 pub struct FnType {
-    params: Vec<Type>,
-    return_type: Option<Box<Type>>,
+    pub params: Vec<Type>,
+    pub return_type: Option<Box<Type>>,
 }

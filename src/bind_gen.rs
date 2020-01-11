@@ -469,7 +469,30 @@ fn process_decl(
         }) => {
             // TODO: Type parameters
 
-            todo!();
+            let params = params
+                .into_iter()
+                .map(|p| {
+                    type_from_pattern(context, module_info, p)
+                })
+            .collect::<Result<Vec<_>, _>>()?;
+
+            let return_type = return_type
+                .map(|ann| type_from_ann(context, module_info, ann))
+                .transpose()?
+                .map(|typ| Box::new(typ));
+
+            let fn_type = Type::Fn {
+                origin: context.module_path.display().to_string(),
+                type_signature: FnType {
+                    params,
+                    return_type,
+                }
+            };
+
+            Ok(Item::Fn {
+                name: ident.sym.to_string(),
+                typ: fn_type,
+            })
         },
 
         Decl::Var(VarDecl {
