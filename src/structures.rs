@@ -107,17 +107,17 @@ pub enum Item {
 #[derive(Debug, Clone)]
 pub enum Type {
     Fn {
-        origin: Str,
+        origin: String,
         type_signature: FnType,
     },
     Class {
-        name: Str,
-        origin: Str,
+        name: String,
+        origin: String,
         constructor: Box<Type>,
         fields: HashMap<String, Type>,
     },
     Interface {
-        origin: Str,
+        origin: String,
         fields: HashMap<String, Type>,
     },
     Array(Box<Type>, usize),
