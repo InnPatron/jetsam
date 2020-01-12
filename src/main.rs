@@ -1,5 +1,8 @@
 mod error;
-mod bind_gen; mod structures;
+mod bind_gen;
+mod structures;
+mod emit;
+mod emit_structures;
 
 use std::sync::Arc;
 use std::path::PathBuf;

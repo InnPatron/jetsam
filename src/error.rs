@@ -28,3 +28,6 @@ pub enum UnsupportedFeature {
     TsExportAssignment,
     TsNamespaceExport,
 }
+
+#[derive(Debug)]
+pub struct EmitError;
