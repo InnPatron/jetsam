@@ -73,6 +73,12 @@ impl ModuleInfo {
     }
 }
 
+pub enum ItemKind {
+    Value,
+    Type,
+    ValueType,
+}
+
 pub enum Item {
     Class {
         name: String,
@@ -102,6 +108,34 @@ pub enum Item {
         name: String,
         typ: Type,
     },
+}
+
+impl Item {
+
+    pub fn item_kind(&self) -> ItemKind {
+        match self {
+            Item::Class { .. } => ItemKind::ValueType,
+            Item::Fn { .. } => ItemKind::Value,
+            Item::Var { .. } => ItemKind::Value,
+            Item::TsInterface { .. } => ItemKind::Type,
+            Item::TsTypeAlias { .. } => ItemKind::Type,
+            Item::TsEnum { .. } => ItemKind::Type,      // TODO: TsEnum is ValueType?
+            Item::TsModule { .. } => todo!("Item TsModule?"),
+        }
+    }
+
+    pub fn into_data(self) -> (String, Type) {
+
+        match self {
+            Item::Class { name, typ } => (name, typ),
+            Item::Fn { name, typ } => (name, typ),
+            Item::Var { name, typ } => (name, typ),
+            Item::TsInterface { name, typ } => (name, typ),
+            Item::TsTypeAlias { name, typ } => (name, typ),
+            Item::TsEnum { name, typ } => (name, typ),
+            Item::TsModule { .. } => todo!("Item TsModule"),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

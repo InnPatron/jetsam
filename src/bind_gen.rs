@@ -84,6 +84,10 @@ impl<T> Scope<T> {
         }
     }
 
+    fn insert(&mut self, key: String, typ: Type) {
+        self.map.insert(key, typ);
+    }
+
     fn get(&self, key: &str) -> Option<&Type> {
         self.map.get(key)
     }
@@ -281,8 +285,29 @@ fn process_module_decl(
             span,
             decl,
         }) => {
-            let decl_item = process_decl(context, module_info, decl, span);
-            todo!();
+            let decl_item = process_decl(context, module_info, decl, span)?;
+            let item_kind = decl_item.item_kind();
+            let (name, typ) = decl_item.into_data();
+
+            match item_kind {
+                ItemKind::Value => {
+                    module_info.export_value(name.clone(), typ.clone());
+                    context.value_scope.insert(name, typ);
+                }
+
+                ItemKind::Type => {
+                    module_info.export_type(name.clone(), typ.clone());
+                    context.type_scope.insert(name, typ);
+                }
+                ItemKind::ValueType => {
+                    module_info.export_value(name.clone(), typ.clone());
+                    module_info.export_type(name.clone(), typ.clone());
+                    context.value_scope.insert(name.clone(), typ.clone());
+                    context.type_scope.insert(name, typ);
+                }
+            }
+
+            Ok(())
         }
 
         ModuleDecl::ExportNamed(NamedExport {
