@@ -183,7 +183,8 @@ pub fn process_module(mut context: Context, mut module: Module) -> Result<Module
     for module_item in module.body {
         let result = process_module_item(&mut context, &mut module_info, module_item)?;
     }
-    todo!();
+
+    Ok(module_info)
 }
 
 fn hoist_imports(module: &mut Module) {
