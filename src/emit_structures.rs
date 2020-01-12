@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
+use serde_json::error::Error as JsonError;
+
 macro_rules! local_type {
     ($name: expr) => {
         ["local", $name]
@@ -58,7 +60,7 @@ impl JsonOutput {
         self.provides_datatypes.insert(name.to_string(), opaque_type);
     }
 
-    pub fn finalize(self) -> String {
+    pub fn finalize(self) -> Result<String, JsonError> {
         let map = json!({
             "requires": [],
             "provides": {
@@ -69,7 +71,7 @@ impl JsonOutput {
             }
         });
 
-        map.to_string()
+        serde_json::to_string_pretty(&map)
     }
 }
 

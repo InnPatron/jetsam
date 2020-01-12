@@ -44,7 +44,11 @@ pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), Emi
         File::create(json_output_path)
         .map_err(|io_err| EmitError::IoError(root_module_info.path().to_owned(), io_err))?;
 
-    file.write_all(output.finalize().as_bytes());
+    let output = output
+        .finalize()
+        .map_err(|json_err| EmitError::JsonError(root_module_info.path().to_owned(), json_err))?;
+
+    file.write_all(output.as_bytes());
 
     Ok(())
 }

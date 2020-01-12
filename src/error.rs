@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::fmt::Display;
 
 use swc_common::Span;
+use serde_json::error::Error as JsonError;
 
 #[derive(Debug)]
 pub struct BindGenError {
@@ -32,4 +33,5 @@ pub enum UnsupportedFeature {
 #[derive(Debug)]
 pub enum EmitError {
     IoError(PathBuf, IoError),
+    JsonError(PathBuf, JsonError),
 }
