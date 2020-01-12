@@ -21,6 +21,22 @@ impl ModuleInfo {
         }
     }
 
+    pub fn path(&self) -> &std::path::Path {
+        self.path.as_path()
+    }
+
+    pub fn exported_types(&self) -> impl Iterator<Item=(&str, &Type)> {
+        self.exported_types
+            .iter()
+            .map(|(s, t)| (s.as_str(), t))
+    }
+
+    pub fn exoprted_values(&self) -> impl Iterator<Item=(&str, &Type)> {
+        self.exported_values
+            .iter()
+            .map(|(s, t)| (s.as_str(), t))
+    }
+
     pub fn get_exported_value(&self, key: &str) -> Option<&Type> {
         self.exported_values.get(key)
     }
