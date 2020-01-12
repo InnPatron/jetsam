@@ -15,6 +15,16 @@ use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, Ts
 
 use clap::{Arg, App};
 
+use error::EmitError;
+
+fn output_directory_validator(arg: String) -> Result<(), String> {
+    if PathBuf::from(arg).is_dir() {
+        Ok(())
+    } else {
+        Err("Expected output argument to be a directory".to_string())
+    }
+}
+
 fn main() {
 
     let matches = App::new("plank")
@@ -29,14 +39,18 @@ fn main() {
             .long("output")
             .value_name("DIR_PATH")
             .takes_value(true)
-            .required(true))
+            .required(true)
+            .validator(output_directory_validator))
         .get_matches();
 
     let input_path =
         matches.value_of("INPUT").expect("No input root module");
 
-    let path = PathBuf::from(input_path);
+    let output_dir =
+        matches.value_of("OUTPUT").expect("No output directory");
 
+    let output_dir = PathBuf::from(output_dir);
+    let input_path = PathBuf::from(input_path);
 
     swc_common::GLOBALS.set(&swc_common::Globals::new(), move || {
         let cm: Arc<SourceMap> = Default::default();
@@ -46,13 +60,13 @@ Some(cm.clone()));
 
         let context =
             bind_gen::Context::new(
-                path,
+                input_path,
                 &handler,
                 cm.clone(),
             );
 
         let module_info = (move || {
-            let module =  bind_gen::open_module(&context, None)?;
+            let module = bind_gen::open_module(&context, None)?;
 
             bind_gen::process_module(context, module)
         })();
@@ -66,5 +80,16 @@ Some(cm.clone()));
                 std::process::exit(1);
             }
         };
+
+        let emit_result: Result<(), EmitError> = (move || {
+            let _ = emit::emit_json(&output_dir, &module_info)?;
+
+            Ok(())
+        })();
+
+        if let Err(e) = emit_result {
+            eprintln!("emit error: {:?}", e);
+            std::process::exit(1);
+        }
     });
 }
