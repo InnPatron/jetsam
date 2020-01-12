@@ -1,6 +1,5 @@
 mod error;
-mod bind_gen;
-mod structures;
+mod bind_gen; mod structures;
 
 use std::sync::Arc;
 use std::path::PathBuf;
@@ -27,7 +26,7 @@ fn main() {
             .long("output")
             .value_name("DIR_PATH")
             .takes_value(true)
-            .required(false))
+            .required(true))
         .get_matches();
 
     let input_path =
@@ -48,10 +47,21 @@ Some(cm.clone()));
                 &handler,
                 cm.clone(),
             );
-        let module = bind_gen::open_module(&context, None)
-            .expect("Failed to open module");
 
-        let _ = bind_gen::process_module(context, module)
-            .expect("Bind gen failure");
+        let module_info = (move || {
+            let module =  bind_gen::open_module(&context, None)?;
+
+            bind_gen::process_module(context, module)
+        })();
+
+        let module_info = match module_info {
+            Ok(module_info) => module_info,
+
+            Err(e) => {
+
+                eprintln!("bind-gen error: {:?}", e);
+                std::process::exit(1);
+            }
+        };
     });
 }
