@@ -23,7 +23,7 @@ pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), Emi
         .expect("Root module info path has no filename");
     let json_output_path = {
         let mut output_path = outdir.to_owned();
-        output_path.set_file_name(file_name);
+        output_path.push(file_name);
         output_path.set_extension("arr.json");
 
         output_path
