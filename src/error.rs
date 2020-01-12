@@ -30,4 +30,6 @@ pub enum UnsupportedFeature {
 }
 
 #[derive(Debug)]
-pub struct EmitError;
+pub enum EmitError {
+    IoError(PathBuf, IoError),
+}
