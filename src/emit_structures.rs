@@ -109,6 +109,8 @@ impl JsonOutput {
                 ref fields,
             } => opaque_type!(name),
 
+            Type::UnsizedArray(ref e_type) => todo!("Cannot re-define the unsized array type"),
+
             Type::Array(ref e_type, ref size) => todo!("Cannot re-define the array type"),
 
             Type::Primitive(..) => todo!("Cannot re-define a primitive type"),
@@ -155,7 +157,26 @@ impl JsonOutput {
                 ref fields,
             } => local_type!(@V name),
 
+
+            Type::UnsizedArray(ref e_type) => {
+                let e_type = JsonOutput::in_place_type_to_value(e_type);
+                json!([
+                    "tyapp",
+                    {
+                        "tag":"name",
+                        "origin":
+                        {
+                            "import-type":"uri",
+                            "uri":"builtin://global"
+                        },
+                        "name":"RawArray"
+                    },
+                    e_type
+                ])
+            }
+
             Type::Array(ref e_type, ref size) => {
+                // TODO: Use size somehow
                 let e_type = JsonOutput::in_place_type_to_value(e_type);
                 json!([
                     "tyapp",
