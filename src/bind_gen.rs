@@ -595,10 +595,18 @@ fn type_from_ann(
     module_info: &ModuleInfo,
     ann: TsTypeAnn,
 ) -> Result<Type, BindGenError> {
-
     let ann_span = ann.span;
 
-    match *ann.type_ann {
+    bind_type(context, module_info, *ann.type_ann)
+}
+
+fn bind_type(
+    context: &Context,
+    module_info: &ModuleInfo,
+    typ: TsType,
+) -> Result<Type, BindGenError> {
+
+    match typ {
         TsType::TsKeywordType(TsKeywordType {
             span,
             kind,
@@ -670,7 +678,8 @@ fn type_from_ann(
             span,
             elem_type,
         }) => {
-            todo!("ts array type");
+            let elem_type = Box::new(bind_type(context, module_info, *elem_type)?);
+            Ok(Type::UnsizedArray(elem_type))
         },
 
         TsType::TsTupleType(TsTupleType {
