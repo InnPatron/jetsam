@@ -677,6 +677,7 @@ fn type_from_ann(
             span,
             elem_types,
         }) => {
+            // Tuple types are fixed-length arrays (at init)
             todo!("ts tuple type");
         },
 
