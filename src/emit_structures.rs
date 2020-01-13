@@ -60,12 +60,13 @@ impl JsonOutput {
         self.provides_values.insert(name.to_string(), value_type);
     }
 
-    pub fn export_opaque_type(&mut self, name: &str) {
-        let opaque_type = json!(["data", name, [], [], []]);
+    pub fn export_type(&mut self, name: &str, typ: &Type) {
         let local_type = local_type!(@V name);
 
+        let actual_type = JsonOutput::define_type(typ);
+
         self.provides_aliases.insert(name.to_string(), local_type);
-        self.provides_datatypes.insert(name.to_string(), opaque_type);
+        self.provides_datatypes.insert(name.to_string(), actual_type);
     }
 
     pub fn finalize(self) -> Result<String, JsonError> {
@@ -80,6 +81,38 @@ impl JsonOutput {
         });
 
         serde_json::to_string_pretty(&map)
+    }
+
+    fn define_type(typ: &Type) -> Value {
+
+        macro_rules! opaque_type {
+            ($name: expr) => {
+                json!(["data", $name, [], [], []]);
+            }
+        }
+
+        match typ {
+            Type::Fn {
+                ..
+            } => JsonOutput::in_place_type_to_value(typ),
+
+            Type::Class {
+                ref name,
+                ref origin,
+                ref constructor,
+                ref fields,
+            } => opaque_type!(name),
+
+            Type::Interface {
+                ref name,
+                ref origin,
+                ref fields,
+            } => opaque_type!(name),
+
+            Type::Array(ref e_type, ref size) => todo!("Cannot re-define the array type"),
+
+            Type::Primitive(..) => todo!("Cannot re-define a primitive type"),
+        }
     }
 
     /// Generates the Value representing the Type embedded within another Type.

@@ -33,8 +33,8 @@ pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), Emi
 
     let mut output = JsonOutput::new();
 
-    for (export_key, _typ) in root_module_info.exported_types() {
-        output.export_opaque_type(export_key);
+    for (export_key, typ) in root_module_info.exported_types() {
+        output.export_type(export_key, typ);
     }
 
     for (export_key, typ) in root_module_info.exported_values() {
