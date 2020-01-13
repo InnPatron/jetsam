@@ -4,6 +4,8 @@ use serde_json::{json, Map, Value};
 
 use serde_json::error::Error as JsonError;
 
+use super::structures::{PrimitiveType, Type};
+
 macro_rules! local_type {
     ($name: expr) => {
         ["local", $name]
@@ -72,6 +74,84 @@ impl JsonOutput {
         });
 
         serde_json::to_string_pretty(&map)
+    }
+
+    /// Generates the Value representing the Type embedded within another Type.
+    /// Assumes types are already defined in the datatypes section.
+    fn in_place_type_to_value(typ: &Type) -> Value {
+        match typ {
+            Type::Fn {
+                ref origin,
+                ref type_signature,
+            } => {
+                let params: Vec<Value> = type_signature.params
+                    .iter()
+                    .map(|t| JsonOutput::in_place_type_to_value(t))
+                    .collect();
+
+                // TODO: Default to Any or Nothing?
+                let return_type = type_signature.return_type
+                    .as_ref()
+                    .map(|t| JsonOutput::in_place_type_to_value(t))
+                    .unwrap_or(JsonOutput::in_place_type_to_value(&Type::Primitive(PrimitiveType::Any)));
+
+                todo!();
+            }
+
+            Type::Class {
+                ref name,
+                ref origin,
+                ref constructor,
+                ref fields,
+            } => local_type!(@V name),
+
+            Type::Interface {
+                ref name,
+                ref origin,
+                ref fields,
+            } => local_type!(@V name),
+
+            Type::Array(ref e_type, ref size) => {
+                let e_type = JsonOutput::in_place_type_to_value(e_type);
+                json!([
+                    "tyapp",
+                    {
+                        "tag":"name",
+                        "origin":
+                        {
+                            "import-type":"uri",
+                            "uri":"builtin://global"
+                        },
+                        "name":"RawArray"
+                    },
+                    e_type
+                ])
+            }
+
+            Type::Primitive(PrimitiveType::Boolean) => json!("Boolean"),
+
+            Type::Primitive(PrimitiveType::Number) => json!("Number"),
+
+            Type::Primitive(PrimitiveType::String) => json!("String"),
+
+            Type::Primitive(PrimitiveType::Void) => json!("Nothing"),
+
+            Type::Primitive(PrimitiveType::Object) => {
+                todo!("Object primitive type");
+            }
+
+            Type::Primitive(PrimitiveType::Any) => json!("Any"),
+
+            Type::Primitive(PrimitiveType::Never) => json!("tbot"),
+
+            Type::Primitive(PrimitiveType::Undefined) => {
+                todo!("Undefined primitive type");
+            }
+
+            Type::Primitive(PrimitiveType::Null) => {
+                todo!();
+            }
+        }
     }
 }
 
