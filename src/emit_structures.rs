@@ -54,6 +54,12 @@ impl JsonOutput {
         }
     }
 
+    pub fn export_value(&mut self, name: &str, value_type: &Type) {
+        let value_type = JsonOutput::in_place_type_to_value(value_type);
+
+        self.provides_values.insert(name.to_string(), value_type);
+    }
+
     pub fn export_opaque_type(&mut self, name: &str) {
         let opaque_type = json!(["data", name, [], [], []]);
         let local_type = local_type!(@V name);

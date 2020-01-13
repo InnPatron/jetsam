@@ -37,6 +37,10 @@ pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), Emi
         output.export_opaque_type(export_key);
     }
 
+    for (export_key, typ) in root_module_info.exported_values() {
+        output.export_value(export_key, typ);
+    }
+
     // TODO: Emit values
 
     // Emit JSON into file
