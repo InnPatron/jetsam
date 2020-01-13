@@ -134,7 +134,12 @@ impl JsonOutput {
                     .map(|t| JsonOutput::in_place_type_to_value(t))
                     .unwrap_or(JsonOutput::in_place_type_to_value(&Type::Primitive(PrimitiveType::Any)));
 
-                todo!();
+                // [ "arrow", [params], return-type ]
+                json!([
+                    "arrow",
+                    params,
+                    return_type
+                ])
             }
 
             Type::Class {
