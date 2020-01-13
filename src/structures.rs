@@ -171,6 +171,7 @@ pub enum Type {
         origin: String,
         fields: HashMap<String, Type>,
     },
+    UnsizedArray(Box<Type>),
     Array(Box<Type>, usize),
     Primitive(PrimitiveType),
 }
