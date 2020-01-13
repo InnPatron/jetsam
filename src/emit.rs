@@ -44,15 +44,17 @@ pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), Emi
     // TODO: Emit values
 
     // Emit JSON into file
+    let root_path = root_module_info.path().to_owned();
     let mut file =
         File::create(json_output_path)
-        .map_err(|io_err| EmitError::IoError(root_module_info.path().to_owned(), io_err))?;
+        .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
     let output = output
         .finalize()
-        .map_err(|json_err| EmitError::JsonError(root_module_info.path().to_owned(), json_err))?;
+        .map_err(|json_err| EmitError::JsonError(root_path.to_owned(), json_err))?;
 
-    file.write_all(output.as_bytes());
+    file.write_all(output.as_bytes())
+        .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
     Ok(())
 }
