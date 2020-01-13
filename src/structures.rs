@@ -167,6 +167,7 @@ pub enum Type {
         fields: HashMap<String, Type>,
     },
     Interface {
+        name: String,
         origin: String,
         fields: HashMap<String, Type>,
     },
