@@ -550,7 +550,13 @@ fn process_decl(
         }) => {
             // TODO: Type parameters
 
-            todo!();
+            let aliasing_type = bind_type(context, module_info, *type_ann)?;
+            let name = id.sym.to_string();
+
+            Ok(Item::TsTypeAlias{
+                name,
+                typ: aliasing_type,
+            })
         },
 
         Decl::TsEnum(TsEnumDecl {
