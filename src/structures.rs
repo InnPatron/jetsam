@@ -31,7 +31,7 @@ impl ModuleInfo {
             .map(|(s, t)| (s.as_str(), t))
     }
 
-    pub fn exoprted_values(&self) -> impl Iterator<Item=(&str, &Type)> {
+    pub fn exported_values(&self) -> impl Iterator<Item=(&str, &Type)> {
         self.exported_values
             .iter()
             .map(|(s, t)| (s.as_str(), t))
