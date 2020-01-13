@@ -66,9 +66,9 @@ Some(cm.clone()));
             );
 
         let module_info = (move || {
-            let module = bind_gen::open_module(&context, None)?;
+            let module = bind_gen::BindGenSession::open_module(&context, None)?;
 
-            bind_gen::process_module(context, module)
+            bind_gen::BindGenSession::process_module(context, module)
         })();
 
         let module_info = match module_info {
