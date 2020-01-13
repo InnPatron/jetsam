@@ -61,8 +61,17 @@ impl JsonOutput {
     }
 
     pub fn export_type(&mut self, name: &str, typ: &Type) {
-        let local_type = local_type!(@V name);
 
+        if let Type::Alias {
+            ref name,
+            ref aliasing_type,
+        } = typ {
+
+            self.provides_aliases.insert(name.to_string(), local_type!(@V name));
+            return;
+        }
+
+        let local_type = local_type!(@V name);
         let actual_type = JsonOutput::define_type(typ);
 
         self.provides_aliases.insert(name.to_string(), local_type);
@@ -114,6 +123,8 @@ impl JsonOutput {
             Type::Array(ref e_type, ref size) => todo!("Cannot re-define the array type"),
 
             Type::Primitive(..) => todo!("Cannot re-define a primitive type"),
+
+            Type::Alias { .. } => todo!("Aliases are not in the datatypes section"),
         }
     }
 
@@ -155,6 +166,12 @@ impl JsonOutput {
                 ref name,
                 ref origin,
                 ref fields,
+            } => local_type!(@V name),
+
+            // TODO: How to handle a type alias?
+            Type::Alias {
+                ref name,
+                ref aliasing_type,
             } => local_type!(@V name),
 
 

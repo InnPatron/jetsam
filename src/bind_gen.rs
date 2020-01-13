@@ -554,8 +554,11 @@ fn process_decl(
             let name = id.sym.to_string();
 
             Ok(Item::TsTypeAlias{
-                name,
-                typ: aliasing_type,
+                name: name.clone(),
+                typ: Type::Alias {
+                    name,
+                    aliasing_type: Box::new(aliasing_type),
+                }
             })
         },
 
