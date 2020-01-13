@@ -125,6 +125,8 @@ impl JsonOutput {
             Type::Primitive(..) => todo!("Cannot re-define a primitive type"),
 
             Type::Alias { .. } => todo!("Aliases are not in the datatypes section"),
+
+            Type::Union => todo!("Union types are not in the datatypes section"),
         }
     }
 
@@ -233,6 +235,9 @@ impl JsonOutput {
             Type::Primitive(PrimitiveType::Null) => {
                 todo!();
             }
+
+            // TODO: Union types default to Any
+            Type::Union => json!("Any"),
         }
     }
 }

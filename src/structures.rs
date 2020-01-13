@@ -177,6 +177,7 @@ pub enum Type {
     },
     UnsizedArray(Box<Type>),
     Array(Box<Type>, usize),
+    Union,
     Primitive(PrimitiveType),
 }
 

@@ -711,7 +711,9 @@ fn bind_type(
             span,
             types,
         })) => {
-            todo!("ts union type");
+            // TODO: How to bind union types?
+            // Keep opaque for now
+            Ok(Type::Union)
         },
 
         TsType::TsUnionOrIntersectionType(TsUnionOrIntersectionType::TsIntersectionType(..)) => {
