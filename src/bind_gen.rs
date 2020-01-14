@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 use std::path::{PathBuf, Path};
 use std::sync::Arc;
 use std::rc::Rc;
@@ -18,42 +18,38 @@ struct ValueMarker;
 struct TypeMarker;
 
 pub struct BindGenSession {
+    workset: HashSet<CanonPath>,
     cache_map: HashMap<CanonPath, Rc<ModuleInfo>>,
 }
 
 impl BindGenSession {
     pub fn new() -> Self {
         BindGenSession {
+            workset: HashSet::new(),
             cache_map: HashMap::new(),
         }
     }
 
-    fn cache(&mut self, path: &Path, info: ModuleInfo) -> Result<Rc<ModuleInfo>, BindGenError> {
-        use swc_common::{BytePos, SyntaxContext};
+    fn register_work(&mut self, path: &CanonPath) {
+        self.workset.insert(path.clone());
+    }
 
-        let path = CanonPath::try_from(path)
-            .map_err(|io_err| BindGenError {
-                kind: BindGenErrorKind::IoError(path.to_owned(), io_err),
-                span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
-            })?;
+    fn finish_work(&mut self, path: &CanonPath) {
+        self.workset.remove(path);
+    }
+
+    fn cache(&mut self, path: &CanonPath, info: ModuleInfo) -> Result<Rc<ModuleInfo>, BindGenError> {
 
         if self.cache_map.contains_key(&path) == false {
             self.cache_map.insert(path.clone(), Rc::new(info));
         }
 
-        Ok(self.cache_map.get(&path).map(|path| path.clone()).unwrap())
+        Ok(self.cache_map.get(&path).map(|module| module.clone()).unwrap())
     }
 
-    fn cache_get(&self, path: &Path) -> Result<Option<Rc<ModuleInfo>>, BindGenError> {
-        use swc_common::{BytePos, SyntaxContext};
+    fn cache_get(&self, path: &CanonPath) -> Result<Option<Rc<ModuleInfo>>, BindGenError> {
 
-        let path = CanonPath::try_from(path)
-            .map_err(|io_err| BindGenError {
-                kind: BindGenErrorKind::IoError(path.to_owned(), io_err),
-                span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
-            })?;
-
-        Ok(self.cache_map.get(&path).map(|path| path.clone()))
+        Ok(self.cache_map.get(&path).map(|module| module.clone()))
     }
 }
 
@@ -167,17 +163,29 @@ impl BindGenSession {
     ///     2. Assign types to symbols based on their internal scopes?
     pub fn bind_root_module(&mut self, context: Context)
         -> Result<Rc<ModuleInfo>, BindGenError> {
+        use swc_common::{BytePos, SyntaxContext};
 
-        self.cache_get(&context.module_path)?
+        let canon_path = CanonPath::try_from(context.module_path.as_path())
+            .map_err(|io_error|
+                BindGenError {
+                    kind: BindGenErrorKind::IoError(context.module_path.clone(), io_error),
+                    span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
+                }
+            )?;
+        self.cache_get(&canon_path)?
             .map(|module_info| Ok(module_info))
             .unwrap_or_else(|| {
-                let module_path = context.module_path.clone();
+
+                self.register_work(&canon_path);
 
                 let module = BindGenSession::open_module(&context, None)?;
 
                 let module_info = self.process_module(context, module)?;
 
-                self.cache(&module_path, module_info)
+                self.finish_work(&canon_path);
+
+                self.cache(&canon_path, module_info)
+
             })
     }
 
@@ -190,16 +198,30 @@ impl BindGenSession {
 
     fn bind_module(&mut self, parent_context: &Context, module_path: &Path, span: Option<Span>)
         -> Result<Rc<ModuleInfo>, BindGenError> {
+        use swc_common::{BytePos, SyntaxContext};
 
-        self.cache_get(module_path)?
+        let canon_path = CanonPath::try_from(module_path)
+            .map_err(|io_error|
+                BindGenError {
+                    kind: BindGenErrorKind::IoError(module_path.to_owned(), io_error),
+                    span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
+                }
+            )?;
+
+        self.cache_get(&canon_path)?
             .map(|module_info| Ok(module_info))
             .unwrap_or_else(|| {
+
+                self.register_work(&canon_path);
+
                 let context = parent_context.fork(module_path.to_owned());
                 let module = BindGenSession::open_module(&context, span)?;
 
                 let module_info = self.process_module(context, module)?;
 
-                self.cache(module_path, module_info)
+                self.finish_work(&canon_path);
+
+                self.cache(&canon_path, module_info)
             })
     }
 
