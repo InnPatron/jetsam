@@ -199,3 +199,28 @@ pub struct FnType {
     pub params: Vec<Type>,
     pub return_type: Option<Box<Type>>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CanonPath(PathBuf);
+
+impl CanonPath {
+    fn path(&self) -> &std::path::Path {
+        &self.0
+    }
+}
+
+impl std::convert::TryFrom<PathBuf> for CanonPath {
+    type Error = std::io::Error;
+
+    fn try_from(p: PathBuf) -> Result<Self, Self::Error> {
+        p.canonicalize().map(|p| CanonPath(p))
+    }
+}
+
+impl<'a> std::convert::TryFrom<&'a std::path::Path> for CanonPath {
+    type Error = std::io::Error;
+
+    fn try_from(p: &std::path::Path) -> Result<Self, Self::Error> {
+        p.canonicalize().map(|p| CanonPath(p))
+    }
+}

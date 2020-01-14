@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::{PathBuf, Path};
 use std::sync::Arc;
 use std::rc::Rc;
+use std::convert::TryFrom;
 
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -17,7 +18,7 @@ struct ValueMarker;
 struct TypeMarker;
 
 pub struct BindGenSession {
-    cache_map: HashMap<PathBuf, Rc<ModuleInfo>>,
+    cache_map: HashMap<CanonPath, Rc<ModuleInfo>>,
 }
 
 impl BindGenSession {
@@ -30,7 +31,7 @@ impl BindGenSession {
     fn cache(&mut self, path: &Path, info: ModuleInfo) -> Result<Rc<ModuleInfo>, BindGenError> {
         use swc_common::{BytePos, SyntaxContext};
 
-        let path = path.canonicalize()
+        let path = CanonPath::try_from(path)
             .map_err(|io_err| BindGenError {
                 kind: BindGenErrorKind::IoError(path.to_owned(), io_err),
                 span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
@@ -46,7 +47,7 @@ impl BindGenSession {
     fn cache_get(&self, path: &Path) -> Result<Option<Rc<ModuleInfo>>, BindGenError> {
         use swc_common::{BytePos, SyntaxContext};
 
-        let path = path.canonicalize()
+        let path = CanonPath::try_from(path)
             .map_err(|io_err| BindGenError {
                 kind: BindGenErrorKind::IoError(path.to_owned(), io_err),
                 span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
