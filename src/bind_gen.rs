@@ -13,10 +13,6 @@ use swc_ecma_ast::*;
 use super::structures::*;
 use super::error::*;
 
-// Marker types
-struct ValueMarker;
-struct TypeMarker;
-
 pub struct BindGenSession {
     workset: HashSet<CanonPath>,
     cache_map: HashMap<CanonPath, Rc<ModuleInfo>>,
@@ -28,6 +24,10 @@ impl BindGenSession {
             workset: HashSet::new(),
             cache_map: HashMap::new(),
         }
+    }
+
+    fn in_workset(&self, path: &CanonPath) -> bool {
+        self.workset.contains(path)
     }
 
     fn register_work(&mut self, path: &CanonPath) {
@@ -55,8 +55,8 @@ impl BindGenSession {
 
 pub struct Context<'a> {
     module_path: PathBuf,
-    value_scope: Scope<ValueMarker>,
-    type_scope: Scope<TypeMarker>,
+    value_scope: Scope<Value>,
+    type_scope: Scope<Type>,
     source_map: Arc<SourceMap>,
     session: Session<'a>,
 }
@@ -110,48 +110,22 @@ impl<'a> Context<'a> {
 }
 
 struct Scope<T> {
-    map: HashMap<String, Type>,
-    marker: std::marker::PhantomData<T>,
+    map: HashMap<String, T>,
 }
 
 impl<T> Scope<T> {
     fn new() -> Self {
         Scope {
             map: HashMap::new(),
-            marker: std::marker::PhantomData,
         }
     }
 
-    fn insert(&mut self, key: String, typ: Type) {
-        self.map.insert(key, typ);
+    fn insert(&mut self, key: String, v: T) {
+        self.map.insert(key, v);
     }
 
-    fn get(&self, key: &str) -> Option<&Type> {
+    fn get(&self, key: &str) -> Option<&T> {
         self.map.get(key)
-    }
-}
-
-impl Scope<ValueMarker> {
-    fn try_import(&mut self, module: &ModuleInfo, export_key: String, as_key: Option<String>) -> bool {
-        module.get_exported_value(&export_key)
-            .map(|typ| {
-                let key = as_key.unwrap_or(export_key.clone());
-                self.map.insert(key, typ.clone());
-                true
-            })
-        .unwrap_or(false)
-    }
-}
-
-impl Scope<TypeMarker> {
-    fn try_import(&mut self, module: &ModuleInfo, export_key: String, as_key: Option<String>) -> bool {
-        module.get_exported_type(&export_key)
-            .map(|typ| {
-                let key = as_key.unwrap_or(export_key.clone());
-                self.map.insert(key, typ.clone());
-                true
-            })
-        .unwrap_or(false)
     }
 }
 
@@ -190,14 +164,14 @@ impl BindGenSession {
     }
 
     fn bind_module_from_src(&mut self, parent_context: &Context, module_path: &Str, span: Option<Span>)
-        -> Result<Rc<ModuleInfo>, BindGenError> {
+        -> Result<(), BindGenError> {
         let module_path = PathBuf::from(module_path.value.to_string());
 
         self.bind_module(parent_context, &module_path, span)
     }
 
     fn bind_module(&mut self, parent_context: &Context, module_path: &Path, span: Option<Span>)
-        -> Result<Rc<ModuleInfo>, BindGenError> {
+        -> Result<(), BindGenError> {
         use swc_common::{BytePos, SyntaxContext};
 
         let canon_path = CanonPath::try_from(module_path)
@@ -209,19 +183,23 @@ impl BindGenSession {
             )?;
 
         self.cache_get(&canon_path)?
-            .map(|module_info| Ok(module_info))
+            .map(|_| Ok(()))
             .unwrap_or_else(|| {
 
-                self.register_work(&canon_path);
+                if self.in_workset(&canon_path) == false {
+                    self.register_work(&canon_path);
 
-                let context = parent_context.fork(module_path.to_owned());
-                let module = BindGenSession::open_module(&context, span)?;
+                    let context = parent_context.fork(module_path.to_owned());
+                    let module = BindGenSession::open_module(&context, span)?;
 
-                let module_info = self.process_module(context, module)?;
+                    let module_info = self.process_module(context, module)?;
 
-                self.finish_work(&canon_path);
+                    self.finish_work(&canon_path);
 
-                self.cache(&canon_path, module_info)
+                    self.cache(&canon_path, module_info);
+                }
+
+                Ok(())
             })
     }
 
@@ -387,7 +365,7 @@ impl BindGenSession {
                 match item_kind {
                     ItemKind::Value => {
                         module_info.export_value(name.clone(), typ.clone());
-                        context.value_scope.insert(name, typ);
+                        context.value_scope.insert(name, Value::Rooted(typ));
                     }
 
                     ItemKind::Type => {
@@ -397,7 +375,7 @@ impl BindGenSession {
                     ItemKind::ValueType => {
                         module_info.export_value(name.clone(), typ.clone());
                         module_info.export_type(name.clone(), typ.clone());
-                        context.value_scope.insert(name.clone(), typ.clone());
+                        context.value_scope.insert(name.clone(), Value::Rooted(typ.clone()));
                         context.type_scope.insert(name, typ);
                     }
                 }
