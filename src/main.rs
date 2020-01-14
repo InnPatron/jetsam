@@ -1,8 +1,9 @@
 mod error;
-mod bind_gen;
+// mod bind_gen;
 mod structures;
-mod emit;
-mod emit_structures;
+mod bind_init;
+// mod emit;
+// mod emit_structures;
 
 use std::sync::Arc;
 use std::path::PathBuf;
@@ -58,37 +59,37 @@ fn main() {
             Handler::with_tty_emitter(ColorConfig::Auto, true, false,
 Some(cm.clone()));
 
-        let context =
-            bind_gen::Context::new(
-                input_path,
-                &handler,
-                cm.clone(),
-            );
-        let mut bind_gen_session = bind_gen::BindGenSession::new();
+        //let context =
+        //    bind_gen::Context::new(
+        //        input_path,
+        //        &handler,
+        //        cm.clone(),
+        //    );
+        //let mut bind_gen_session = bind_gen::BindGenSession::new();
 
-        let module_info = (move || {
-            bind_gen_session.bind_root_module(context)
-        })();
+        //let module_info = (move || {
+        //    bind_gen_session.bind_root_module(context)
+        //})();
 
-        let module_info = match module_info {
-            Ok(module_info) => module_info,
+        //let module_info = match module_info {
+        //    Ok(module_info) => module_info,
 
-            Err(e) => {
+        //    Err(e) => {
 
-                eprintln!("bind-gen error: {:?}", e);
-                std::process::exit(1);
-            }
-        };
+        //        eprintln!("bind-gen error: {:?}", e);
+        //        std::process::exit(1);
+        //    }
+        //};
 
-        let emit_result: Result<(), EmitError> = (move || {
-            let _ = emit::emit_json(&output_dir, &module_info)?;
+        //let emit_result: Result<(), EmitError> = (move || {
+        //    let _ = emit::emit_json(&output_dir, &module_info)?;
 
-            Ok(())
-        })();
+        //    Ok(())
+        //})();
 
-        if let Err(e) = emit_result {
-            eprintln!("emit error: {:?}", e);
-            std::process::exit(1);
-        }
+        //if let Err(e) = emit_result {
+        //    eprintln!("emit error: {:?}", e);
+        //    std::process::exit(1);
+        //}
     });
 }
