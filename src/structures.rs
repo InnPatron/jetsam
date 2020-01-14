@@ -154,6 +154,16 @@ impl Item {
     }
 }
 
+#[derive(Debug)]
+pub enum Value {
+    Ref {
+        pointer: CanonPath,
+        name: String,
+    },
+
+    Rooted(Type),
+}
+
 #[derive(Debug, Clone)]
 pub enum Type {
     Fn {
