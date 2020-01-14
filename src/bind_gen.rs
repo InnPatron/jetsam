@@ -17,6 +17,43 @@ struct ValueMarker;
 struct TypeMarker;
 
 pub struct BindGenSession {
+    cache_map: HashMap<PathBuf, Rc<ModuleInfo>>,
+}
+
+impl BindGenSession {
+    pub fn new() -> Self {
+        BindGenSession {
+            cache_map: HashMap::new(),
+        }
+    }
+
+    fn cache(&mut self, path: &Path, info: ModuleInfo) -> Result<Rc<ModuleInfo>, BindGenError> {
+        use swc_common::{BytePos, SyntaxContext};
+
+        let path = path.canonicalize()
+            .map_err(|io_err| BindGenError {
+                kind: BindGenErrorKind::IoError(path.to_owned(), io_err),
+                span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
+            })?;
+
+        if self.cache_map.contains_key(&path) == false {
+            self.cache_map.insert(path.clone(), Rc::new(info));
+        }
+
+        Ok(self.cache_map.get(&path).map(|path| path.clone()).unwrap())
+    }
+
+    fn cache_get(&self, path: &Path) -> Result<Option<Rc<ModuleInfo>>, BindGenError> {
+        use swc_common::{BytePos, SyntaxContext};
+
+        let path = path.canonicalize()
+            .map_err(|io_err| BindGenError {
+                kind: BindGenErrorKind::IoError(path.to_owned(), io_err),
+                span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
+            })?;
+
+        Ok(self.cache_map.get(&path).map(|path| path.clone()))
+    }
 }
 
 pub struct Context<'a> {
@@ -123,21 +160,45 @@ impl Scope<TypeMarker> {
 
 impl BindGenSession {
 
-    fn open_from_src<'a, 'b>(
-        original_context: &'a Context<'b>,
-        src: &Str,
-        span: Span
-        ) -> Result<(Context<'b>, Module), BindGenError> {
+    pub fn bind_root_module(&mut self, context: Context)
+        -> Result<Rc<ModuleInfo>, BindGenError> {
 
-        let path = PathBuf::from(src.value.to_string());
-        let context = original_context.fork(path);
+        self.cache_get(&context.module_path)?
+            .map(|module_info| Ok(module_info))
+            .unwrap_or_else(|| {
+                let module_path = context.module_path.clone();
 
-        let module = BindGenSession::open_module(&context, Some(span))?;
+                let module = BindGenSession::open_module(&context, None)?;
 
-        Ok((context, module))
+                let module_info = self.process_module(context, module)?;
+
+                self.cache(&module_path, module_info)
+            })
     }
 
-    pub fn open_module(context: &Context,
+    fn bind_module_from_src(&mut self, parent_context: &Context, module_path: &Str, span: Option<Span>)
+        -> Result<Rc<ModuleInfo>, BindGenError> {
+        let module_path = PathBuf::from(module_path.value.to_string());
+
+        self.bind_module(parent_context, &module_path, span)
+    }
+
+    fn bind_module(&mut self, parent_context: &Context, module_path: &Path, span: Option<Span>)
+        -> Result<Rc<ModuleInfo>, BindGenError> {
+
+        self.cache_get(module_path)?
+            .map(|module_info| Ok(module_info))
+            .unwrap_or_else(|| {
+                let context = parent_context.fork(module_path.to_owned());
+                let module = BindGenSession::open_module(&context, span)?;
+
+                let module_info = self.process_module(context, module)?;
+
+                self.cache(module_path, module_info)
+            })
+    }
+
+    fn open_module(context: &Context,
         span: Option<Span>,
         ) -> Result<Module, BindGenError> {
         use swc_common::{BytePos, SyntaxContext};
@@ -181,14 +242,15 @@ impl BindGenSession {
             })
     }
 
-    pub fn process_module(mut context: Context, mut module: Module)
+    fn process_module(&mut self, mut context: Context, mut module: Module)
         -> Result<ModuleInfo, BindGenError> {
 
         let mut module_info = ModuleInfo::new(context.module_path.clone());
 
         BindGenSession::hoist_imports(&mut module);
         for module_item in module.body {
-            let result = BindGenSession::process_module_item(&mut context, &mut module_info, module_item)?;
+            let _result =
+                self.process_module_item(&mut context, &mut module_info, module_item)?;
         }
 
         Ok(module_info)
@@ -217,6 +279,7 @@ impl BindGenSession {
     }
 
     fn process_module_item(
+        &mut self,
         context: &mut Context,
         module_info: &mut ModuleInfo,
         item: ModuleItem,
@@ -224,13 +287,14 @@ impl BindGenSession {
 
 
         match item {
-            ModuleItem::ModuleDecl(decl) => BindGenSession::process_module_decl(context, module_info, decl),
+            ModuleItem::ModuleDecl(decl) => self.process_module_decl(context, module_info, decl),
 
             ModuleItem::Stmt(stmt) => todo!(),
         }
     }
 
     fn process_module_decl(
+        &mut self,
         context: &mut Context,
         module_info: &mut ModuleInfo,
         decl: ModuleDecl
@@ -244,11 +308,7 @@ impl BindGenSession {
                 span,
                 specifiers,
             }) => {
-                // TODO: Module cache
-                let (dep_context, dep_module) =
-                    BindGenSession::open_from_src(context, &src, span)?;
-
-                let dep_module_info = BindGenSession::process_module(dep_context, dep_module)?;
+                let dep_module_info = self.bind_module_from_src(context, &src, Some(span))?;
 
                 for specifier in specifiers {
                     match specifier {
@@ -328,9 +388,8 @@ impl BindGenSession {
 
                     // Open the source module and re-export an exported item
                     Some(src) => {
-                        let (dep_context, dep_module) =
-                            BindGenSession::open_from_src(context, &src, span)?;
-                        let dep_module_info = BindGenSession::process_module(dep_context, dep_module)?;
+
+                        let dep_module_info = self.bind_module_from_src(context, &src, Some(span))?;
 
                         Box::new(move |original_key: String, as_key: Option<String>| -> () {
                             module_info.merge_export(
@@ -412,12 +471,10 @@ impl BindGenSession {
                 span,
                 ..
             }) => {
-                let (dep_context, dep_module) =
-                    BindGenSession::open_from_src(context, &src, span)?;
-                let dep_module_info = BindGenSession::process_module(dep_context, dep_module)?;
+                let dep_module_info = self.bind_module_from_src(context, &src, Some(span))?;
 
                 // Take all exports and merge into the current module
-                module_info.merge_all(&dep_module_info);
+                module_info.merge_all(&*dep_module_info);
 
                 Ok(())
             }

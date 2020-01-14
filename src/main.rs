@@ -64,11 +64,10 @@ Some(cm.clone()));
                 &handler,
                 cm.clone(),
             );
+        let mut bind_gen_session = bind_gen::BindGenSession::new();
 
         let module_info = (move || {
-            let module = bind_gen::BindGenSession::open_module(&context, None)?;
-
-            bind_gen::BindGenSession::process_module(context, module)
+            bind_gen_session.bind_root_module(context)
         })();
 
         let module_info = match module_info {
