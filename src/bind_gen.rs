@@ -160,6 +160,10 @@ impl Scope<TypeMarker> {
 
 impl BindGenSession {
 
+    /// TODO: Handle circular dependencies
+    /// Possible algorithm:
+    ///     1. Parse modules and connect import/export symbols
+    ///     2. Assign types to symbols based on their internal scopes?
     pub fn bind_root_module(&mut self, context: Context)
         -> Result<Rc<ModuleInfo>, BindGenError> {
 
