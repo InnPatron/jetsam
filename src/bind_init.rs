@@ -153,23 +153,12 @@ fn scan_dependencies(
         };
 
         maybe_dep.map(|(src, span)| {
-            let path_buf = {
-                let mut path_buf = PathBuf::from(src.value.to_string());
-                bind_common::prepare_path(&mut path_buf);
-
-                path_buf
-            };
-
-            CanonPath::try_from(path_buf)
-                .map(|path| (path, span.clone()))
-                .map_err(|io_error| {
-                    BindGenError {
-                        module_path: module_path.as_path().to_owned(),
-                        kind: io_error.into(),
-                        span: span.clone(),
-                    }
-                })
-        }).transpose()
+            let dep_buf = PathBuf::from(src.value.to_string());
+            bind_common::locate_dependency(module_path.as_path(), &dep_buf)
+                .map(|path_result| path_result.map(|path| (path, span.clone())))
+        })
+            .transpose()
+            .map(|opt| opt.flatten())
     };
 
     let mut dep_buf = Vec::new();
