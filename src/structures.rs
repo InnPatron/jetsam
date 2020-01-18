@@ -214,8 +214,14 @@ pub struct FnType {
 pub struct CanonPath(PathBuf);
 
 impl CanonPath {
-    fn path(&self) -> &std::path::Path {
+    pub fn as_path(&self) -> &std::path::Path {
         &self.0
+    }
+}
+
+impl From<CanonPath> for PathBuf {
+    fn from(p: CanonPath) -> PathBuf {
+        p.0
     }
 }
 
