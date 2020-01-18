@@ -9,14 +9,21 @@ use serde_json::error::Error as JsonError;
 #[derive(Debug)]
 pub struct BindGenError {
     pub kind: BindGenErrorKind,
+    pub module_path: PathBuf,
     pub span: Span,
 }
 
 #[derive(Debug)]
 pub enum BindGenErrorKind {
     UnsupportedFeature(UnsupportedFeature),
-    IoError(PathBuf, IoError),
+    IoError(IoError),
     ParserError,
+}
+
+impl From<IoError> for BindGenErrorKind {
+    fn from(v: IoError) -> Self {
+        BindGenErrorKind::IoError(v)
+    }
 }
 
 #[derive(Debug)]
