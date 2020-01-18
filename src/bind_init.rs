@@ -19,6 +19,11 @@ pub struct ModuleData {
     pub dependencies: Vec<CanonPath>,
 }
 
+/// TODO: Take into account dependencies which may not be in the assumed location
+///    because of pacakge managers.
+///    i.e. need to take into account import { .. } from ".location/dependency"
+///    Assuming the input is correct, emit a log warning of dependency instead of erroring
+///
 /// Starting from the root module, parse all Typescript '.d.ts' files in the project
 ///   and map to their canonical path.
 pub fn init<'a>(
