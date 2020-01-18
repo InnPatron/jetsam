@@ -2,6 +2,7 @@ mod error;
 // mod bind_gen;
 mod structures;
 mod bind_init;
+mod bind_common;
 // mod emit;
 // mod emit_structures;
 
