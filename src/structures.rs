@@ -155,13 +155,18 @@ impl Item {
 }
 
 #[derive(Debug)]
-pub enum Value {
-    Ref {
-        pointer: CanonPath,
-        name: String,
+pub enum Nebulous<T> {
+    Floating {
+        module_path: CanonPath,
+        item_name: String,
     },
+    Rooted(T),
+}
 
-    Rooted(Type),
+#[derive(Debug, Clone)]
+pub struct Value {
+    name: String,
+    typ: Type
 }
 
 #[derive(Debug, Clone)]
