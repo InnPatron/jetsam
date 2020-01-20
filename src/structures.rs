@@ -187,8 +187,8 @@ impl<T> Nebulous<T> {
 
 #[derive(Debug, Clone)]
 pub struct Value {
-    name: String,
-    typ: Type
+    pub name: String,
+    pub typ: Type
 }
 
 #[derive(Debug, Clone)]
