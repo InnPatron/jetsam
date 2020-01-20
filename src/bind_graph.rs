@@ -20,18 +20,33 @@ struct Scope<T> {
     map: HashMap<String, T>,
 }
 
-impl<T> Scope<T> {
+impl<T> Scope<Nebulous<T>> {
     fn new() -> Self {
         Scope {
             map: HashMap::new(),
         }
     }
 
-    fn insert(&mut self, key: String, v: T) {
-        self.map.insert(key, v);
+    fn insert(&mut self, key: String, to_insert: Nebulous<T>) {
+        use std::collections::hash_map::Entry;
+
+        match self.map.entry(key) {
+            Entry::Occupied(ref mut occupied) => {
+                if to_insert.is_floating() == false {
+                    // Rooted values should not be overwritten at the module scope
+                    assert!(occupied.get().is_floating());
+
+                    occupied.insert(to_insert);
+                }
+            }
+
+            Entry::Vacant(vacant) => {
+                vacant.insert(to_insert);
+            }
+        }
     }
 
-    fn get(&self, key: &str) -> Option<&T> {
+    fn get(&self, key: &str) -> Option<&Nebulous<T>> {
         self.map.get(key)
     }
 }
@@ -48,7 +63,7 @@ pub fn build_module_graph(
             type_scope: Scope::new(),
         };
 
-        let mut module_info = ModuleInfo::new(canon_path.into());
+        let mut module_info = ModuleInfo::new(canon_path.into(), module.dependencies);
 
         hoist_imports(&mut module.module_ast);
         todo!("Build module graph");
@@ -122,7 +137,16 @@ impl BindGenSession {
                             imported,
                         }) => {
                             // context.value_scope.insert(
-                            todo!("Insert nebulous value + type");
+                            let import_canon_path =
+                                module_info.get_dep_canon_path(&src.value.to_string());
+                            let item_name = imported
+                                .map(|ident| ident.sym.to_string())
+                                .unwrap_or_else(|| local.sym.to_string());
+                            let import_name = local.sym.to_string();
+                            context.value_scope.insert(import_name, Nebulous::Floating {
+                                item_name,
+                                module_path: import_canon_path,
+                            });
                         }
 
                         ImportSpecifier::Default(def) => {
@@ -156,24 +180,33 @@ impl BindGenSession {
 
                 match item_kind {
                     ItemKind::Value => {
-                        module_info.export_value(name.clone(), typ.clone());
-                        // context.value_scope.insert(name, Value::Rooted(typ));
-                        todo!("Insert rooted value");
+                        module_info.export_value(name.clone(), Nebulous::Rooted(Value {
+                            name: name.clone(),
+                            typ: typ.clone(),
+                        }));
+                        context.value_scope.insert(name.clone(), Nebulous::Rooted(Value {
+                            name,
+                            typ,
+                        }));
                     }
 
                     ItemKind::Type => {
-                        module_info.export_type(name.clone(), typ.clone());
-                        // context.type_scope.insert(name, typ);
-                        todo!("Insert rooted type");
+                        module_info.export_type(name.clone(), Nebulous::Rooted(typ.clone()));
+                        context.type_scope.insert(name, Nebulous::Rooted(typ));
                     }
 
                     ItemKind::ValueType => {
-                        module_info.export_value(name.clone(), typ.clone());
-                        module_info.export_type(name.clone(), typ.clone());
-                        // context.value_scope.insert(name.clone(), Value::Rooted(typ.clone()));
-                        // context.type_scope.insert(name, typ);
+                        module_info.export_value(name.clone(), Nebulous::Rooted(Value {
+                            name: name.clone(),
+                            typ: typ.clone(),
+                        }));
+                        module_info.export_type(name.clone(), Nebulous::Rooted(typ.clone()));
 
-                        todo!("Insert rooted type+value");
+                        context.value_scope.insert(name.clone(), Nebulous::Rooted(Value {
+                            name: name.clone(),
+                            typ: typ.clone(),
+                        }));
+                        context.type_scope.insert(name, Nebulous::Rooted(typ));
                     }
                 }
 
@@ -186,13 +219,26 @@ impl BindGenSession {
                 specifiers,
             }) => {
 
+                let module_path = module_info.path().to_owned();
                 let mut exporter: Box<FnMut(String, Option<String>) -> ()> = match src {
 
                     // Open the source module and re-export an exported item
                     Some(src) => {
 
                         Box::new(move |original_key: String, as_key: Option<String>| -> () {
-                            todo!("Export as a nebulous value + type");
+                            let as_key = as_key.unwrap_or(original_key.clone());
+                            let export_canon_path =
+                                module_info.get_dep_canon_path(&src.value.to_string());
+
+                            module_info.export_value(as_key.clone(), Nebulous::Floating {
+                                module_path: export_canon_path.clone(),
+                                item_name: original_key.clone(),
+                            });
+
+                            module_info.export_type(as_key, Nebulous::Floating {
+                                module_path: export_canon_path,
+                                item_name: original_key,
+                            });
                         })
                     }
 
@@ -202,25 +248,23 @@ impl BindGenSession {
 
                             let as_key = as_key.unwrap_or(original_key.clone());
 
-                            let value_type = context.value_scope
+                            let value_item = context.value_scope
                                 .get(&original_key)
                                 .map(|v| v.clone());
                             let type_item = context.type_scope
                                 .get(&original_key)
                                 .map(|t| t.clone());
 
-                            if value_type.is_none() && type_item.is_none() {
+                            if value_item.is_none() && type_item.is_none() {
                                 panic!("Invalid export. No item named {} in scope", &original_key);
                             }
 
-                            if let Some(value_type) = value_type {
-                                // module_info.export_value(as_key.clone(), value_type);
-                                todo!("Export as a rooted value");
+                            if let Some(value_item) = value_item {
+                                module_info.export_value(as_key.clone(), value_item);
                             }
 
                             if let Some(type_item) = type_item {
-                                // module_info.export_type(as_key, type_item);
-                                todo!("Export as a rooted value");
+                                module_info.export_type(as_key, type_item);
                             }
                         })
                     }
@@ -246,7 +290,7 @@ impl BindGenSession {
                             ..
                         }) => {
                             return Err(BindGenError {
-                                module_path: module_info.path().to_owned(),
+                                module_path,
                                 kind: BindGenErrorKind::UnsupportedFeature(
                                           UnsupportedFeature::NamespaceExport),
                                 span,
@@ -255,7 +299,7 @@ impl BindGenSession {
 
                         ExportSpecifier::Default(..) => {
                             return Err(BindGenError {
-                                module_path: module_info.path().to_owned(),
+                                module_path,
                                 kind: BindGenErrorKind::UnsupportedFeature(
                                           UnsupportedFeature::DefaultExport),
                                 span,
@@ -273,9 +317,15 @@ impl BindGenSession {
                 ..
             }) => {
 
-                // Take all exports and merge into the current module
-                // module_info.merge_all(&*dep_module_info);
-                todo!("Add to module info's export all");
+                // Mark module as re-exporting all of another module
+                // NOTE: The current way of tracking re-export all
+                //   does NOT work if there are conflicting re-exports.
+                //   ORDER MATTERS FOR ALL EXPORTS BUT THAT IS TOO DIFFICULT
+                //     TO HANDLE IN GENERAL.
+                //   PLANK WILL FAIL TO CORRECTLY GENERATE MODULES WHICH RELY ON EXPORT ORDER
+                //     FOR A CORRECT INTERFACE.
+                let dep_canon_path = module_info.get_dep_canon_path(&src.value.to_string());
+                module_info.export_all.push(dep_canon_path);
 
                 Ok(())
             }

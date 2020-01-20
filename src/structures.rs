@@ -5,6 +5,12 @@ use std::path::PathBuf;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
+/// NOTE: The current way of tracking re-export all
+///   does NOT work if there are conflicting re-exports.
+///   ORDER MATTERS FOR ALL EXPORTS BUT THAT IS TOO DIFFICULT
+///     TO HANDLE IN GENERAL.
+///   PLANK WILL FAIL TO CORRECTLY GENERATE MODULES WHICH RELY ON EXPORT ORDER
+///     FOR A CORRECT INTERFACE.
 pub struct ModuleInfo {
     path: PathBuf,
     dependencies: HashMap<String, CanonPath>,
