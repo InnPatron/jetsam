@@ -16,10 +16,10 @@ pub fn locate_dependency(original: &Path, dependency: &Path) -> Result<Option<Ca
         let mut current_path = current_path.join(dependency);
         prepare_path(&mut current_path);
 
-        CanonPath::try_from(current_path)
+        CanonPath::try_from(current_path.clone())
             .map_err(|e| {
                 BindGenError {
-                    module_path: original.to_owned(),
+                    module_path: current_path,
                     kind: e.into(),
                     span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
                 }
