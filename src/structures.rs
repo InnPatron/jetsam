@@ -7,10 +7,10 @@ use swc_ecma_ast::Str;
 
 pub struct ModuleInfo {
     path: PathBuf,
-    export_all: Vec<CanonPath>,
-    exported_types: HashMap<String, Type>,
-    exported_values: HashMap<String, Type>,
     dependencies: HashMap<String, CanonPath>,
+    pub export_all: Vec<CanonPath>,
+    pub exported_types: HashMap<String, Nebulous<Type>>,
+    pub exported_values: HashMap<String, Nebulous<Value>>,
 }
 
 impl ModuleInfo {
@@ -32,71 +32,12 @@ impl ModuleInfo {
         self.path.as_path()
     }
 
-    pub fn export_all_modue(&mut self, module: CanonPath) {
-        self.export_all.push(module);
+    pub fn export_value(&mut self, name: String, to_insert: Nebulous<Value>) {
+        self.exported_values.insert(name, to_insert);
     }
 
-    pub fn exported_types(&self) -> impl Iterator<Item=(&str, &Type)> {
-        self.exported_types
-            .iter()
-            .map(|(s, t)| (s.as_str(), t))
-    }
-
-    pub fn exported_values(&self) -> impl Iterator<Item=(&str, &Type)> {
-        self.exported_values
-            .iter()
-            .map(|(s, t)| (s.as_str(), t))
-    }
-
-    pub fn get_exported_value(&self, key: &str) -> Option<&Type> {
-        self.exported_values.get(key)
-    }
-
-    pub fn get_exported_type(&self, key: &str) -> Option<&Type> {
-        self.exported_types.get(key)
-    }
-
-    pub fn export_value(&mut self, export_key: String, typ: Type) {
-        self.exported_values.insert(export_key, typ);
-    }
-
-    pub fn export_type(&mut self, export_key: String, typ: Type) {
-        self.exported_types.insert(export_key, typ);
-    }
-
-    pub fn merge_export(&mut self, other: &Self, other_key: String, as_key: Option<String>) {
-
-        let exp_value_type: Option<Type> = other.exported_values
-            .get(&other_key)
-            .map(|id| id.clone());
-
-        let exp_type: Option<Type> = other.exported_types
-            .get(&other_key)
-            .map(|id| id.clone());
-
-        if exp_value_type.is_none() && exp_type.is_none() {
-            panic!("Unknown export key {}", &other_key);
-        }
-
-        if let Some(exp_value_type) = exp_value_type {
-            self.export_value(other_key.clone(), exp_value_type.clone());
-        }
-
-        if let Some(exp_type) = exp_type {
-            self.export_type(other_key, exp_type);
-        }
-    }
-
-    pub fn merge_all(&mut self, other: &Self) {
-
-        // Merge exports
-        for (export_key, typ) in other.exported_types.iter() {
-            self.exported_types.insert(export_key.clone(), typ.clone());
-        }
-
-        for (export_key, value) in other.exported_values.iter() {
-            self.exported_values.insert(export_key.clone(), value.clone());
-        }
+    pub fn export_type(&mut self, name: String, to_insert: Nebulous<Type>) {
+        self.exported_types.insert(name, to_insert);
     }
 }
 
