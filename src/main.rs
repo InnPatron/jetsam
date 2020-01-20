@@ -61,6 +61,25 @@ fn main() {
             Handler::with_tty_emitter(ColorConfig::Auto, true, false,
 Some(cm.clone()));
 
+        let session = Session {
+            handler: &handler,
+        };
+
+        let module_graph: Result<bind_graph::ModuleGraph, _> = (|| {
+            let module_cache =
+                bind_init::init(cm.clone(), session, input_path)?;
+            bind_graph::build_module_graph(module_cache)
+        })();
+
+        let module_graph = match module_graph {
+            Ok(v) => v,
+
+            Err(e) => {
+                eprintln!("bind-gen error: {:?}", e);
+                std::process::exit(1);
+            }
+        };
+
         //let context =
         //    bind_gen::Context::new(
         //        input_path,
