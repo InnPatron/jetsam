@@ -33,11 +33,45 @@ impl ModuleInfo {
     }
 
     pub fn export_value(&mut self, name: String, to_insert: Nebulous<Value>) {
-        self.exported_values.insert(name, to_insert);
+        use std::collections::hash_map::Entry;
+
+        match self.exported_values.entry(name) {
+            Entry::Occupied(ref mut occupied) => {
+                if to_insert.is_floating() == false {
+                    // Rooted values should not be overwritten at the module scope
+                    assert!(occupied.get().is_floating());
+
+                    occupied.insert(to_insert);
+                }
+            }
+
+            Entry::Vacant(vacant) => {
+                vacant.insert(to_insert);
+            }
+        }
+
+        // self.exported_values.insert(name, to_insert);
     }
 
     pub fn export_type(&mut self, name: String, to_insert: Nebulous<Type>) {
-        self.exported_types.insert(name, to_insert);
+        use std::collections::hash_map::Entry;
+
+        match self.exported_types.entry(name) {
+            Entry::Occupied(ref mut occupied) => {
+                if to_insert.is_floating() == false {
+                    // Rooted values should not be overwritten at the module scope
+                    assert!(occupied.get().is_floating());
+
+                    occupied.insert(to_insert);
+                }
+            }
+
+            Entry::Vacant(vacant) => {
+                vacant.insert(to_insert);
+            }
+        }
+
+        // self.exported_types.insert(name, to_insert);
     }
 }
 
@@ -106,7 +140,7 @@ impl Item {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Nebulous<T> {
     Floating {
         module_path: CanonPath,
