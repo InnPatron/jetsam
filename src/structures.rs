@@ -10,17 +10,22 @@ pub struct ModuleInfo {
     export_all: Vec<CanonPath>,
     exported_types: HashMap<String, Type>,
     exported_values: HashMap<String, Type>,
+    dependencies: HashMap<String, CanonPath>,
 }
 
 impl ModuleInfo {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, dependencies: HashMap<String, CanonPath>) -> Self {
         ModuleInfo {
             exported_types: HashMap::new(),
             exported_values: HashMap::new(),
             export_all: Vec::new(),
-
+            dependencies,
             path,
         }
+    }
+
+    pub fn get_dep_canon_path(&self, src: &str) -> CanonPath {
+        self.dependencies.get(src).unwrap().clone()
     }
 
     pub fn path(&self) -> &std::path::Path {
@@ -166,7 +171,18 @@ pub enum Nebulous<T> {
         module_path: CanonPath,
         item_name: String,
     },
+
     Rooted(T),
+}
+
+impl<T> Nebulous<T> {
+    pub fn is_floating(&self) -> bool {
+        if let Nebulous::Floating { .. } = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
