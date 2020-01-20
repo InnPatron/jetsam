@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use swc_common::{BytePos, SyntaxContext, Span, SourceMap};
 use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, TsConfig, JscTarget};
-use swc_ecma_ast::Module;
+use swc_ecma_ast::{Str, Module};
 
 use super::bind_common;
 use super::structures::CanonPath;
@@ -16,7 +16,7 @@ pub struct ParsedModuleCache(pub HashMap<CanonPath, ModuleData>);
 pub struct ModuleData {
     pub path: CanonPath,
     pub module_ast: Module,
-    pub dependencies: Vec<CanonPath>,
+    pub dependencies: HashMap<String, CanonPath>,
 }
 
 /// TODO: Take into account dependencies which may not be in the assumed location
@@ -66,12 +66,12 @@ pub fn init<'a>(
         )?;
 
         let dependencies = scan_dependencies(&current_path, &module_ast, span)?;
-        work_stack.extend(dependencies.iter().cloned().map(|(p, s)| (p, Some(s))));
+        work_stack.extend(dependencies.iter().map(|(k, (p, s))| (p.clone(), Some(s.clone()))));
 
         let module_data = ModuleData {
             path: current_path.clone(),
             module_ast,
-            dependencies: dependencies.into_iter().map(|(p, s)| p).collect(),
+            dependencies: dependencies.into_iter().map(|(k, (p, s))| (k, p)).collect(),
         };
 
         module_cache.insert(current_path.clone(), module_data);
@@ -84,10 +84,10 @@ fn scan_dependencies(
     module_path: &CanonPath,
     module_ast: &Module,
     original_span: Span,
-) -> Result<Vec<(CanonPath, Span)>, BindGenError> {
+) -> Result<HashMap<String, (CanonPath, Span)>, BindGenError> {
     use swc_ecma_ast::*;
 
-    let handle_decl = |decl: &ModuleDecl| -> Result<Option<(CanonPath, Span)>, BindGenError> {
+    let handle_decl = |decl: &ModuleDecl| -> Result<Option<(String, CanonPath, Span)>, BindGenError> {
         let maybe_dep: Option<(&Str, &Span)> = match decl {
             ModuleDecl::Import(ImportDecl {
                 ref src,
@@ -155,18 +155,18 @@ fn scan_dependencies(
         maybe_dep.map(|(src, span)| {
             let dep_buf = PathBuf::from(src.value.to_string());
             bind_common::locate_dependency(module_path.as_path(), &dep_buf)
-                .map(|path_result| path_result.map(|path| (path, span.clone())))
+                .map(|path_result| path_result.map(|path| (src.value.to_string(), path, span.clone())))
         })
             .transpose()
             .map(|opt| opt.flatten())
     };
 
-    let mut dep_buf = Vec::new();
+    let mut dep_buf = HashMap::new();
     for module_item in module_ast.body.iter() {
         match module_item {
             ModuleItem::ModuleDecl(ref decl) => {
-                if let Some(dep) = handle_decl(decl)? {
-                    dep_buf.push(dep);
+                if let Some((src, dep, span)) = handle_decl(decl)? {
+                    dep_buf.insert(src, (dep, span));
                 }
             }
 
