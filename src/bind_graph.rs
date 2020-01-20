@@ -8,7 +8,7 @@ use super::error::*;
 use super::structures::*;
 
 pub struct ModuleGraph {
-
+    pub module_graph: HashMap<CanonPath, ModuleInfo>,
 }
 
 struct Context {
@@ -63,14 +63,19 @@ pub fn build_module_graph(
             type_scope: Scope::new(),
         };
 
-        let mut module_info = ModuleInfo::new(canon_path.into(), module.dependencies);
+        let mut module_info = ModuleInfo::new(canon_path.clone().into(), module.dependencies);
 
         hoist_imports(&mut module.module_ast);
-        todo!("Build module graph");
 
+        let mut bind_gen_session = BindGenSession;
+        bind_gen_session.process_module(&mut context, &mut module_info, module.module_ast)?;
+
+        module_graph.insert(canon_path, module_info);
     }
 
-    todo!();
+    Ok(ModuleGraph {
+        module_graph
+    })
 }
 
 fn hoist_imports(module: &mut Module) {
@@ -98,6 +103,19 @@ fn hoist_imports(module: &mut Module) {
 struct BindGenSession;
 
 impl BindGenSession {
+
+    fn process_module(
+        &mut self,
+        context: &mut Context,
+        module_info: &mut ModuleInfo,
+        module: Module
+    ) -> Result<(), BindGenError> {
+        for item in module.body {
+            self.process_module_item(context, module_info, item)?;
+        }
+
+        Ok(())
+    }
 
     fn process_module_item(
         &mut self,
