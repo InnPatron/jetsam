@@ -7,6 +7,7 @@ use swc_ecma_ast::Str;
 
 pub struct ModuleInfo {
     path: PathBuf,
+    export_all: Vec<CanonPath>,
     exported_types: HashMap<String, Type>,
     exported_values: HashMap<String, Type>,
 }
@@ -16,6 +17,7 @@ impl ModuleInfo {
         ModuleInfo {
             exported_types: HashMap::new(),
             exported_values: HashMap::new(),
+            export_all: Vec::new(),
 
             path,
         }
@@ -23,6 +25,10 @@ impl ModuleInfo {
 
     pub fn path(&self) -> &std::path::Path {
         self.path.as_path()
+    }
+
+    pub fn export_all_modue(&mut self, module: CanonPath) {
+        self.export_all.push(module);
     }
 
     pub fn exported_types(&self) -> impl Iterator<Item=(&str, &Type)> {
