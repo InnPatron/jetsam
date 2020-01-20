@@ -36,7 +36,17 @@ fn prepare_path(path: &mut PathBuf) {
         panic!("Module path must contain a file");
     }
 
-    if path.extension().is_none() {
-        path.set_extension("d.ts");
+    match path.extension() {
+        Some(os_str_ext) => {
+            if os_str_ext != "d.ts" {
+                let mut ext = os_str_ext.to_os_string();
+                ext.push(".d.ts");
+                path.set_extension(ext);
+            }
+        }
+
+        None => {
+            path.set_extension("d.ts");
+        }
     }
 }
