@@ -637,7 +637,10 @@ impl BindGenSession {
                 type_name,
                 type_params,
             }) => {
-                todo!("{}:{:?}", module_info.path().display(), span);
+                // todo!("{}:{:?}", module_info.path().display(), type_name);
+                // TODO: TsTypeRef
+
+                Ok(Type::Primitive(PrimitiveType::Any))
             },
 
             TsType::TsTypeQuery(_TsTypeQuery) => {
