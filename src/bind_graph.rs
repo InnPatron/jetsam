@@ -128,7 +128,29 @@ impl BindGenSession {
         match item {
             ModuleItem::ModuleDecl(decl) => self.process_module_decl(context, module_info, decl),
 
-            ModuleItem::Stmt(stmt) => todo!("ModuleItem::Stmt"),
+            ModuleItem::Stmt(stmt) => self.process_stmt(context, module_info, stmt),
+        }
+    }
+
+    fn process_stmt(
+        &mut self,
+        context: &mut Context,
+        module_info: &mut ModuleInfo,
+        stmt: Stmt,
+    ) -> Result<(), BindGenError> {
+        use swc_common::{BytePos, SyntaxContext};
+
+        match stmt {
+            Stmt::Decl(decl) => {
+                BindGenSession::process_decl(
+                    context,
+                    module_info,
+                    decl,
+                    Span::new(BytePos(0), BytePos(0), SyntaxContext::empty())
+                )
+            }
+
+            _ => Ok(()),
         }
     }
 
