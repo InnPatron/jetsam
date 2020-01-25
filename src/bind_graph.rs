@@ -387,7 +387,30 @@ impl BindGenSession {
                 // TODO: Subtyping relations?
                 // TODO: Implements?
 
-                todo!();
+                let name = ident.sym.to_string();
+                let origin = module_info.path().display().to_string();
+
+                // TODO: Constructor type generation
+                let constructor = Box::new(Type::Fn {
+                    origin: origin.clone(),
+                    type_signature: FnType {
+                        params: Vec::new(),
+                        return_type: None,
+                    },
+                });
+
+                // TODO: Class fields
+                let fields = HashMap::new();
+
+                Ok(Item::Class {
+                    name: name.clone(),
+                    typ: Type::Class {
+                        name,
+                        origin,
+                        constructor,
+                        fields,
+                    },
+                })
             },
 
             Decl::Fn(FnDecl {
@@ -435,7 +458,22 @@ impl BindGenSession {
                 decls,
                 ..
             }) => {
-                todo!();
+
+                // TODO: Handle patterns
+                for var_decl in decls {
+                    match var_decl.name {
+                        Pat::Ident(ident) => {
+                            return Ok(Item::Var {
+                                name: ident.sym.to_string(),
+                                typ: Type::Primitive(PrimitiveType::Any),
+                            });
+                        }
+
+                        _ => todo!("variable patterns"),
+                    }
+                }
+
+                unreachable!();
             },
 
             Decl::TsInterface(TsInterfaceDecl {
@@ -448,7 +486,20 @@ impl BindGenSession {
                 // TODO: Type parameters
                 // TODO: Implements?
 
-                todo!();
+                let name = id.sym.to_string();
+                let origin = module_info.path().display().to_string();
+
+                // TODO: Interface fields
+                let fields = HashMap::new();
+
+                Ok(Item::TsInterface{
+                    name: name.clone(),
+                    typ: Type::Interface {
+                        name,
+                        origin,
+                        fields,
+                    },
+                })
             },
 
             Decl::TsTypeAlias(TsTypeAliasDecl {
@@ -479,11 +530,15 @@ impl BindGenSession {
             }) => {
                 // TODO: Care about inhabitants?
 
-                todo!();
+                let name = id.sym.to_string();
+                Ok(Item::TsEnum{
+                    name,
+                    typ: Type::Primitive(PrimitiveType::Any),
+                })
             },
 
-            Decl::TsModule(..) => {
-                todo!("TS modules not sup");
+            Decl::TsModule(m) => {
+                todo!("TS modules not suppported: {}::{:?}", module_info.path().display(), m.id);
             },
         }
     }
@@ -582,7 +637,7 @@ impl BindGenSession {
                 type_name,
                 type_params,
             }) => {
-                todo!();
+                todo!("{}:{:?}", module_info.path().display(), span);
             },
 
             TsType::TsTypeQuery(_TsTypeQuery) => {
