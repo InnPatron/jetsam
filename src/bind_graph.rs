@@ -142,12 +142,14 @@ impl BindGenSession {
 
         match stmt {
             Stmt::Decl(decl) => {
-                BindGenSession::process_decl(
+                let item = BindGenSession::process_decl(
                     context,
                     module_info,
                     decl,
                     Span::new(BytePos(0), BytePos(0), SyntaxContext::empty())
-                )
+                )?;
+
+                self.handle_item(context, module_info, item, false)
             }
 
             _ => Ok(()),
@@ -215,42 +217,7 @@ impl BindGenSession {
                 decl,
             }) => {
                 let decl_item = BindGenSession::process_decl(context, module_info, decl, span)?;
-                let item_kind = decl_item.item_kind();
-                let (name, typ) = decl_item.into_data();
-
-                match item_kind {
-                    ItemKind::Value => {
-                        module_info.export_value(name.clone(), Nebulous::Rooted(Value {
-                            name: name.clone(),
-                            typ: typ.clone(),
-                        }));
-                        context.value_scope.insert(name.clone(), Nebulous::Rooted(Value {
-                            name,
-                            typ,
-                        }));
-                    }
-
-                    ItemKind::Type => {
-                        module_info.export_type(name.clone(), Nebulous::Rooted(typ.clone()));
-                        context.type_scope.insert(name, Nebulous::Rooted(typ));
-                    }
-
-                    ItemKind::ValueType => {
-                        module_info.export_value(name.clone(), Nebulous::Rooted(Value {
-                            name: name.clone(),
-                            typ: typ.clone(),
-                        }));
-                        module_info.export_type(name.clone(), Nebulous::Rooted(typ.clone()));
-
-                        context.value_scope.insert(name.clone(), Nebulous::Rooted(Value {
-                            name: name.clone(),
-                            typ: typ.clone(),
-                        }));
-                        context.type_scope.insert(name, Nebulous::Rooted(typ));
-                    }
-                }
-
-                Ok(())
+                self.handle_item(context, module_info, decl_item, true)
             }
 
             ModuleDecl::ExportNamed(NamedExport {
@@ -385,6 +352,58 @@ impl BindGenSession {
             ModuleDecl::TsNamespaceExport(..)
                 => unreachable!("Caught in init"),
         }
+    }
+
+    fn handle_item(
+        &mut self,
+        context: &mut Context,
+        module_info: &mut ModuleInfo,
+        item: Item,
+        export: bool,
+    ) -> Result<(), BindGenError> {
+        let item_kind = item.item_kind();
+        let (name, typ) = item.into_data();
+
+        match item_kind {
+            ItemKind::Value => {
+
+                if export {
+                    module_info.export_value(name.clone(), Nebulous::Rooted(Value {
+                        name: name.clone(),
+                        typ: typ.clone(),
+                    }));
+                }
+                context.value_scope.insert(name.clone(), Nebulous::Rooted(Value {
+                    name,
+                    typ,
+                }));
+            }
+
+            ItemKind::Type => {
+                if export {
+                    module_info.export_type(name.clone(), Nebulous::Rooted(typ.clone()));
+                }
+                context.type_scope.insert(name, Nebulous::Rooted(typ));
+            }
+
+            ItemKind::ValueType => {
+                if export {
+                    module_info.export_value(name.clone(), Nebulous::Rooted(Value {
+                        name: name.clone(),
+                        typ: typ.clone(),
+                    }));
+                    module_info.export_type(name.clone(), Nebulous::Rooted(typ.clone()));
+                }
+
+                context.value_scope.insert(name.clone(), Nebulous::Rooted(Value {
+                    name: name.clone(),
+                    typ: typ.clone(),
+                }));
+                context.type_scope.insert(name, Nebulous::Rooted(typ));
+            }
+        };
+
+        Ok(())
     }
 
     fn process_decl(
