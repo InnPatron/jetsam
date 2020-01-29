@@ -42,8 +42,8 @@ pub enum Export {
     },
     Named {
         source: CanonPath,
+        src_key: JsWord,
         export_key: JsWord,
-        module_key: JsWord,
     },
     All {
         source: CanonPath,
@@ -189,8 +189,92 @@ impl<'a> NodeInitSession<'a> {
                 ..
             }) => self.process_decl(decl, true),
 
+            ModuleDecl::ExportNamed(ref exp) => self.process_named_export(exp),
+
 
             x => todo!("Unhandled {:?}", x),
+        }
+    }
+
+    fn prune_export_specifiers<'c, T>(&self, specifiers: T, exp_span: &Span)
+        -> Result<Vec<&'c ExportSpecifier>, BindGenError>
+            where T: Iterator<Item=&'c ExportSpecifier> {
+
+        let mut buff = Vec::new();
+        for spec in specifiers {
+            match spec {
+                ExportSpecifier::Named(..) => {
+                    buff.push(spec);
+                },
+
+                ExportSpecifier::Namespace(NamespaceExportSpecifier {
+                    ref span,
+                    ..
+                }) => {
+                    return Err(BindGenError {
+                        module_path: self.path.as_path().to_owned(),
+                        kind: BindGenErrorKind::UnsupportedFeature(
+                                  UnsupportedFeature::NamespaceExport),
+                        span: span.clone(),
+                    });
+                }
+
+                ExportSpecifier::Default(..) => {
+                    return Err(BindGenError {
+                        module_path: self.path.as_path().to_owned(),
+                        kind: BindGenErrorKind::UnsupportedFeature(
+                                  UnsupportedFeature::DefaultExport),
+                        span: exp_span.clone(),
+                    });
+                }
+            }
+        }
+
+        Ok(buff)
+    }
+
+    fn process_named_export(&mut self, exp: &NamedExport) -> Result<(), BindGenError> {
+        let specifiers = self.prune_export_specifiers(exp.specifiers.iter(), &exp.span)?;
+
+        match exp.src {
+            Some(ref src) => {
+                let src_canon_path: &CanonPath =
+                    get_dep_src!(self, src);
+
+                // Add export edges
+                for spec in specifiers {
+
+                    match spec {
+                        ExportSpecifier::Named(NamedExportSpecifier {
+                            ref orig,
+                            exported: ref exported_as,
+                            ..
+                        }) => {
+
+                            let orig_key = orig.sym.clone();
+                            let export_key = exported_as
+                                .as_ref()
+                                .map(|x| x.sym.clone())
+                                .unwrap_or(orig_key.clone());
+
+                            self.export_edges.push(Export::Named {
+                                source: src_canon_path.clone(),
+                                src_key: orig_key,
+                                export_key,
+                            });
+                        },
+
+                        _ => unreachable!("Invalid specifier should be pruned"),
+                    }
+                }
+
+                todo!();
+            }
+
+            None => {
+                todo!()
+
+            }
         }
     }
 
