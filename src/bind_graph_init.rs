@@ -204,8 +204,20 @@ impl<'a> NodeInitSession<'a> {
                 Ok(())
             }
 
+            ModuleDecl::ExportDefaultDecl(..)
+                => unreachable!("Caught in bind init"),
 
-            x => todo!("Unhandled {:?}", x),
+            ModuleDecl::ExportDefaultExpr(..)
+                => unreachable!("Caught in bind init"),
+
+            ModuleDecl::TsImportEquals(..)
+                => unreachable!("Caught in bind init"),
+
+            ModuleDecl::TsExportAssignment(..)
+                => unreachable!("Caught in bind init"),
+
+            ModuleDecl::TsNamespaceExport(..)
+                => unreachable!("Caught in bind init"),
         }
     }
 
