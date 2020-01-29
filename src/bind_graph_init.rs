@@ -192,6 +192,18 @@ impl<'a> NodeInitSession<'a> {
 
             ModuleDecl::ExportNamed(ref exp) => self.process_named_export(exp),
 
+            ModuleDecl::ExportAll(ExportAll {
+                ref src,
+                ..
+            }) => {
+                let dep_canon_path = get_dep_src!(self, src);
+                self.export_edges.push(Export::All {
+                    source: dep_canon_path.clone(),
+                });
+
+                Ok(())
+            }
+
 
             x => todo!("Unhandled {:?}", x),
         }
