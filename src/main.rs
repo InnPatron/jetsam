@@ -3,6 +3,7 @@ mod error;
 mod structures;
 mod bind_init;
 mod bind_common;
+mod bind_graph_init;
 mod bind_graph;
 // mod emit;
 // mod emit_structures;
