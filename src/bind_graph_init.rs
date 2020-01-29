@@ -83,8 +83,8 @@ struct NodeInitSession<'a> {
     import_edges: Vec<Import>,
     export_edges: Vec<Export>,
 
-    value_scope: HashMap<String, ItemState>,
-    type_scope: HashMap<String, ItemState>,
+    value_scope: HashMap<JsWord, ItemState>,
+    type_scope: HashMap<JsWord, ItemState>,
 }
 
 macro_rules! get_dep_src {
@@ -96,7 +96,7 @@ macro_rules! get_dep_src {
 
 impl<'a> NodeInitSession<'a> {
 
-    fn scope_item(&mut self, name: String, state: ItemState, kind: ScopeKind) {
+    fn scope_item(&mut self, name: JsWord, state: ItemState, kind: ScopeKind) {
         use std::collections::hash_map::Entry;
 
         match kind {
@@ -199,8 +199,16 @@ impl<'a> NodeInitSession<'a> {
 
                 self.import_edges.push(Import::Named {
                     source: source.clone(),
-                    export_key,
+                    export_key: export_key.clone(),
                 });
+
+                let item = ItemState::Imported {
+                    source: source.clone(),
+                    export_key,
+                };
+
+                let import_key = specific.local.sym.clone();
+                self.scope_item(import_key, item, ScopeKind::ValueType);
 
                 Ok(())
             }
