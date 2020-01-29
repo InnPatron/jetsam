@@ -134,40 +134,7 @@ impl<'a> NodeInitSession<'a> {
                     get_dep_src!(self, import.src);
 
                 for specifier in import.specifiers.iter() {
-                    match specifier {
-                        ImportSpecifier::Specific(ref specific) => {
-
-                            let export_key = specific
-                                .imported
-                                .as_ref()
-                                .map(|export_key| export_key.sym.clone())
-                                .unwrap_or(specific.local.sym.clone());
-
-                            self.import_edges.push(Import::Named {
-                                source: src_canon_path.clone(),
-                                export_key,
-                            });
-
-                        }
-
-                        ImportSpecifier::Default(def) => {
-                            return Err(BindGenError {
-                                module_path: self.path.as_path().to_owned(),
-                                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
-                                span: def.span,
-                            });
-                        }
-
-                        ImportSpecifier::Namespace(namespace) => {
-                            return Err(BindGenError {
-                                module_path: self.path.as_path().to_owned(),
-                                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
-                                span: namespace.span,
-                            });
-                        }
-
-                        _ => todo!("Unhandled import specifier"),
-                    }
+                    self.handle_import_specifier(src_canon_path, specifier)?;
                 }
 
                 Ok(())
@@ -175,6 +142,43 @@ impl<'a> NodeInitSession<'a> {
 
 
             x => todo!("Unhandled {:?}", x),
+        }
+    }
+
+    fn handle_import_specifier(&mut self, source: &CanonPath, spec: &ImportSpecifier)
+        -> Result<(), BindGenError> {
+        match spec {
+            ImportSpecifier::Specific(ref specific) => {
+
+                let export_key = specific
+                    .imported
+                    .as_ref()
+                    .map(|export_key| export_key.sym.clone())
+                    .unwrap_or(specific.local.sym.clone());
+
+                self.import_edges.push(Import::Named {
+                    source: source.clone(),
+                    export_key,
+                });
+
+                Ok(())
+            }
+
+            ImportSpecifier::Default(def) => {
+                Err(BindGenError {
+                    module_path: self.path.as_path().to_owned(),
+                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                    span: def.span,
+                })
+            }
+
+            ImportSpecifier::Namespace(namespace) => {
+                Err(BindGenError {
+                    module_path: self.path.as_path().to_owned(),
+                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                    span: namespace.span,
+                })
+            }
         }
     }
 }
