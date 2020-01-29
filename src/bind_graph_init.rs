@@ -31,7 +31,7 @@ pub enum Import {
     },
     Named {
         source: CanonPath,
-        export_key: JsWord,
+        src_key: JsWord,
     },
 }
 
@@ -64,7 +64,8 @@ pub struct ModuleGraph {
 enum ItemState {
     Imported {
         source: CanonPath,
-        export_key: JsWord,
+        src_key: JsWord,
+        as_key: JsWord,
     },
 
     Rooted,
@@ -362,20 +363,23 @@ impl<'a> NodeInitSession<'a> {
         match spec {
             ImportSpecifier::Specific(ref specific) => {
 
-                let export_key = specific
+                let src_key = specific
                     .imported
                     .as_ref()
                     .map(|export_key| export_key.sym.clone())
                     .unwrap_or(specific.local.sym.clone());
 
+                let as_key = specific.local.sym.clone();
+
                 self.import_edges.push(Import::Named {
                     source: source.clone(),
-                    export_key: export_key.clone(),
+                    src_key: src_key.clone(),
                 });
 
                 let item = ItemState::Imported {
                     source: source.clone(),
-                    export_key,
+                    src_key,
+                    as_key,
                 };
 
                 let import_key = specific.local.sym.clone();
