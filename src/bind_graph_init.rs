@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use swc_ecma_ast::*;
+use swc_atoms::JsWord;
 use swc_common::Span;
 
 use super::bind_init;
@@ -32,8 +33,7 @@ pub enum Import {
     },
     Named {
         source: CanonPath,
-        export_key: String,
-        module_key: String,
+        export_key: JsWord,
     },
 }
 
@@ -44,8 +44,8 @@ pub enum Export {
     },
     Named {
         source: CanonPath,
-        export_key: String,
-        module_key: String,
+        export_key: JsWord,
+        module_key: JsWord,
     },
     All {
         source: CanonPath,
@@ -62,13 +62,30 @@ pub struct ModuleGraph {
     pub import_edges: HashMap<CanonPath, Vec<Import>>,
 }
 
+enum ItemState {
+    MaybeImported {
+        source: CanonPath,
+        item: String,
+    },
+
+    Rooted,
+}
+
 struct NodeInitSession<'a> {
     path: &'a CanonPath,
-    rooted_export_types: HashSet<String>,
-    rooted_export_values: HashSet<String>,
+    dependency_map: &'a HashMap<String, CanonPath>,
+    import_edges: Vec<Import>,
+    export_edges: Vec<Export>,
 
-    value_scope: HashSet<String>,
-    type_scope: HashSet<String>,
+    value_scope: HashMap<String, ItemState>,
+    type_scope: HashMap<String, ItemState>,
+}
+
+macro_rules! get_dep_src {
+    ($self: expr, $src_str: expr) => {
+        $self.dependency_map.get(&*$src_str.value).expect("Source path not found in dependency_map")
+    }
+
 }
 
 impl<'a> NodeInitSession<'a> {
@@ -76,11 +93,13 @@ impl<'a> NodeInitSession<'a> {
     fn init(g: &mut ModuleGraph, module_data: bind_init::ModuleData) -> Result<(), InitError> {
         let mut session = NodeInitSession {
             path: &module_data.path,
-            rooted_export_types: HashSet::new(),
-            rooted_export_values: HashSet::new(),
+            dependency_map: &module_data.dependencies,
+            import_edges: Vec::new(),
+            export_edges: Vec::new(),
 
-            value_scope: HashSet::new(),
-            type_scope: HashSet::new(),
+
+            value_scope: HashMap::new(),
+            type_scope: HashMap::new(),
         };
 
         for item in module_data.module_ast.body.iter() {
@@ -93,6 +112,55 @@ impl<'a> NodeInitSession<'a> {
     }
 
     fn process_module_item(&mut self, item: &ModuleItem) -> Result<(), InitError> {
-        todo!();
+        match item {
+
+            ModuleItem::ModuleDecl(ref decl) => self.process_module_decl(decl),
+
+            ModuleItem::Stmt(ref stmt) => self.process_stmt(stmt),
+        }
+    }
+
+    fn process_stmt(&mut self, stmt: &Stmt) -> Result<(), InitError> {
+        if let Stmt::Decl(ref decl) = stmt {
+            todo!("Handle decl statement");
+        }
+
+        Ok(())
+    }
+
+    fn process_module_decl(&mut self, module_decl: &ModuleDecl) -> Result<(), InitError> {
+        match module_decl {
+
+            ModuleDecl::Import(ref import) => {
+                let src_canon_path: &CanonPath =
+                    get_dep_src!(self, import.src);
+
+                for specifier in import.specifiers.iter() {
+                    match specifier {
+                        ImportSpecifier::Specific(ref specific) => {
+
+                            let export_key = specific
+                                .imported
+                                .as_ref()
+                                .map(|export_key| export_key.sym.clone())
+                                .unwrap_or(specific.local.sym.clone());
+
+                            self.import_edges.push(Import::Named {
+                                source: src_canon_path.clone(),
+                                export_key,
+                            });
+
+                        }
+
+                        _ => todo!("Unhandled import specifier"),
+                    }
+                }
+
+                Ok(())
+            },
+
+
+            x => todo!("Unhandled {:?}", x),
+        }
     }
 }
