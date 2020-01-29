@@ -14,7 +14,12 @@ pub fn init(cache: bind_init::ParsedModuleCache) -> Result<ModuleGraph, BindGenE
         export_edges: HashMap::new(),
         import_edges: HashMap::new(),
     };
-    todo!("Init module graph");
+
+    for (_, module_data) in cache.0.into_iter() {
+        NodeInitSession::init(&mut graph, module_data)?;
+    }
+
+    Ok(graph)
 }
 
 pub struct ModuleNode {
