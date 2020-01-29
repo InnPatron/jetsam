@@ -150,6 +150,22 @@ impl<'a> NodeInitSession<'a> {
 
                         }
 
+                        ImportSpecifier::Default(def) => {
+                            return Err(BindGenError {
+                                module_path: self.path.as_path().to_owned(),
+                                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                                span: def.span,
+                            });
+                        }
+
+                        ImportSpecifier::Namespace(namespace) => {
+                            return Err(BindGenError {
+                                module_path: self.path.as_path().to_owned(),
+                                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                                span: namespace.span,
+                            });
+                        }
+
                         _ => todo!("Unhandled import specifier"),
                     }
                 }
