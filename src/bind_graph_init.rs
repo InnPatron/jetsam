@@ -407,8 +407,19 @@ impl<'a> NodeInitSession<'a> {
                 decls,
                 ..
             }) => {
-                todo!("Add var to value scope");
-                todo!("Export var");
+                let mut symbols = Vec::new();
+                decls.iter()
+                    .for_each(|decl| {
+                        match decl.name {
+                            Pat::Ident(ref ident) => {
+                                symbols.push(ident.sym.clone());
+                            },
+
+                            _ => todo!("Handle all patterns"),
+                        }
+                    });
+
+                (symbols, ScopeKind::Value)
             },
 
             Decl::TsInterface(TsInterfaceDecl {
