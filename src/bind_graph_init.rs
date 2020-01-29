@@ -269,12 +269,76 @@ impl<'a> NodeInitSession<'a> {
                     }
                 }
 
-                todo!();
+                Ok(())
             }
 
             None => {
-                todo!()
+                for spec in specifiers {
+                    match spec {
+                        ExportSpecifier::Named(NamedExportSpecifier {
+                            ref orig,
+                            exported: ref exported_as,
+                            ..
+                        }) => {
 
+                            let orig_key = orig.sym.clone();
+                            let export_key = exported_as
+                                .as_ref()
+                                .map(|x| x.sym.clone())
+                                .unwrap_or(orig_key.clone());
+
+                            // Handle the named export if it refers to a rooted item or imported
+                            //   item by adding an edge if it is an imported item
+                            //   or by marking the item as rooted (under its export key)
+
+                            // Handle value
+                            if let Some(ref state) = self.value_scope.get(&orig_key) {
+                                match state {
+                                    ItemState::Imported {
+                                        ref source,
+                                        ref src_key,
+                                        ref as_key,
+                                    } => {
+                                        self.export_edges.push(Export::Named {
+                                            source: source.clone(),
+                                            src_key: src_key.clone(),
+                                            export_key: as_key.clone(),
+                                        });
+                                    }
+
+                                    ItemState::Rooted => {
+                                        self.rooted_values.insert(export_key.clone());
+                                    }
+                                }
+                            }
+
+                            // Handle value
+                            if let Some(ref state) = self.type_scope.get(&orig_key) {
+                                match state {
+                                    ItemState::Imported {
+                                        ref source,
+                                        ref src_key,
+                                        ref as_key,
+                                    } => {
+                                        self.export_edges.push(Export::Named {
+                                            source: source.clone(),
+                                            src_key: src_key.clone(),
+                                            export_key: as_key.clone(),
+                                        });
+                                    }
+
+                                    ItemState::Rooted => {
+                                        self.rooted_types.insert(export_key);
+                                    }
+                                }
+                            }
+                        },
+
+                        _ => unreachable!("Invalid specifier should be pruned"),
+                    }
+                }
+
+                Ok(())
             }
         }
     }
