@@ -82,6 +82,8 @@ struct NodeInitSession<'a> {
     dependency_map: &'a HashMap<String, CanonPath>,
     import_edges: Vec<Import>,
     export_edges: Vec<Export>,
+    rooted_values: HashSet<JsWord>,
+    rooted_types: HashSet<JsWord>,
 
     value_scope: HashMap<JsWord, ItemState>,
     type_scope: HashMap<JsWord, ItemState>,
@@ -135,7 +137,8 @@ impl<'a> NodeInitSession<'a> {
             dependency_map: &module_data.dependencies,
             import_edges: Vec::new(),
             export_edges: Vec::new(),
-
+            rooted_values: HashSet::new(),
+            rooted_types: HashSet::new(),
 
             value_scope: HashMap::new(),
             type_scope: HashMap::new(),
@@ -161,7 +164,7 @@ impl<'a> NodeInitSession<'a> {
 
     fn process_stmt(&mut self, stmt: &Stmt) -> Result<(), BindGenError> {
         if let Stmt::Decl(ref decl) = stmt {
-            todo!("Handle decl statement");
+            self.process_decl(decl, false)?;
         }
 
         Ok(())
@@ -181,9 +184,93 @@ impl<'a> NodeInitSession<'a> {
                 Ok(())
             },
 
+            ModuleDecl::ExportDecl(ExportDecl {
+                ref decl,
+                ..
+            }) => self.process_decl(decl, true),
+
 
             x => todo!("Unhandled {:?}", x),
         }
+    }
+
+    fn process_decl(&mut self, decl: &Decl, export: bool) -> Result<(), BindGenError> {
+        let (js_words, scope_kind) = match decl {
+            Decl::Class(ClassDecl {
+                ref ident,
+                ..
+            }) => {
+                (vec![ident.sym.clone()], ScopeKind::ValueType)
+            },
+
+            Decl::Fn(FnDecl {
+                ident,
+                ..
+            }) => {
+                (vec![ident.sym.clone()], ScopeKind::Value)
+            },
+
+            Decl::Var(VarDecl {
+                decls,
+                ..
+            }) => {
+                todo!("Add var to value scope");
+                todo!("Export var");
+            },
+
+            Decl::TsInterface(TsInterfaceDecl {
+                id,
+                ..
+            }) => {
+                (vec![id.sym.clone()], ScopeKind::Type)
+            },
+
+            Decl::TsTypeAlias(TsTypeAliasDecl {
+                id,
+                ..
+            }) => {
+                (vec![id.sym.clone()], ScopeKind::Type)
+            },
+
+            Decl::TsEnum(TsEnumDecl {
+                id,
+                ..
+            }) => {
+                (vec![id.sym.clone()], ScopeKind::Type)
+            },
+
+            Decl::TsModule(m) => {
+                todo!("TS modules not suppported: {}::{:?}", self.path.as_path().display(), m.id);
+            },
+        };
+
+        for symbol in js_words.into_iter() {
+            match scope_kind {
+                ScopeKind::Value => {
+                    if export {
+                        self.rooted_values.insert(symbol.clone());
+                    }
+                    self.scope_item(symbol, ItemState::Rooted, scope_kind);
+                }
+
+                ScopeKind::Type => {
+                    if export {
+                        self.rooted_types.insert(symbol.clone());
+                    }
+                    self.scope_item(symbol, ItemState::Rooted, scope_kind);
+                }
+
+                ScopeKind::ValueType => {
+                    if export {
+                        self.rooted_types.insert(symbol.clone());
+                        self.rooted_values.insert(symbol.clone());
+                    }
+                    self.scope_item(symbol, ItemState::Rooted, scope_kind);
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn handle_import_specifier(&mut self, source: &CanonPath, spec: &ImportSpecifier)
