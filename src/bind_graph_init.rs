@@ -8,7 +8,7 @@ use super::bind_init;
 use super::structures::CanonPath;
 use super::error::*;
 
-pub fn init(cache: bind_init::ParsedModuleCache) -> Result<ModuleGraph, InitError> {
+pub fn init(cache: bind_init::ParsedModuleCache) -> Result<ModuleGraph, BindGenError> {
     let mut graph = ModuleGraph {
         nodes: HashMap::new(),
         export_edges: HashMap::new(),
@@ -16,8 +16,6 @@ pub fn init(cache: bind_init::ParsedModuleCache) -> Result<ModuleGraph, InitErro
     };
     todo!("Init module graph");
 }
-
-pub struct InitError;
 
 pub struct ModuleNode {
     pub path: CanonPath,
@@ -90,7 +88,7 @@ macro_rules! get_dep_src {
 
 impl<'a> NodeInitSession<'a> {
 
-    fn init(g: &mut ModuleGraph, module_data: bind_init::ModuleData) -> Result<(), InitError> {
+    fn init(g: &mut ModuleGraph, module_data: bind_init::ModuleData) -> Result<(), BindGenError> {
         let mut session = NodeInitSession {
             path: &module_data.path,
             dependency_map: &module_data.dependencies,
@@ -111,7 +109,7 @@ impl<'a> NodeInitSession<'a> {
         Ok(())
     }
 
-    fn process_module_item(&mut self, item: &ModuleItem) -> Result<(), InitError> {
+    fn process_module_item(&mut self, item: &ModuleItem) -> Result<(), BindGenError> {
         match item {
 
             ModuleItem::ModuleDecl(ref decl) => self.process_module_decl(decl),
@@ -120,7 +118,7 @@ impl<'a> NodeInitSession<'a> {
         }
     }
 
-    fn process_stmt(&mut self, stmt: &Stmt) -> Result<(), InitError> {
+    fn process_stmt(&mut self, stmt: &Stmt) -> Result<(), BindGenError> {
         if let Stmt::Decl(ref decl) = stmt {
             todo!("Handle decl statement");
         }
@@ -128,7 +126,7 @@ impl<'a> NodeInitSession<'a> {
         Ok(())
     }
 
-    fn process_module_decl(&mut self, module_decl: &ModuleDecl) -> Result<(), InitError> {
+    fn process_module_decl(&mut self, module_decl: &ModuleDecl) -> Result<(), BindGenError> {
         match module_decl {
 
             ModuleDecl::Import(ref import) => {
