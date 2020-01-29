@@ -208,7 +208,7 @@ fn open_module<'a>(
 
     let mut parser = Parser::new_from(session, lexer);
 
-    parser
+    let mut module: Module = parser
         .parse_module()
         .map_err(|mut e| {
             e.emit();
@@ -218,5 +218,32 @@ fn open_module<'a>(
                 span: span.clone(),
                 module_path: path.as_path().to_owned(),
             }
-        })
+        })?;
+
+    hoist_imports(&mut module);
+
+    Ok(module)
+}
+
+fn hoist_imports(module: &mut Module) {
+    use swc_ecma_ast::*;
+    use std::mem;
+
+    let capacity = module.body.len();
+
+    let mut module_items = Vec::with_capacity(capacity);
+    mem::swap(&mut module_items, &mut module.body);
+
+    let mut other_buffer = Vec::with_capacity(capacity);
+
+    for module_item in module_items {
+        match module_item {
+            import @ ModuleItem::ModuleDecl(ModuleDecl::Import(..))
+                => module.body.push(import),
+
+            other => other_buffer.push(other),
+        }
+    }
+
+    module.body.append(&mut other_buffer);
 }
