@@ -20,8 +20,8 @@ pub fn init(cache: bind_init::ParsedModuleCache) -> Result<ModuleGraph, BindGenE
 pub struct ModuleNode {
     pub path: CanonPath,
     pub ast: Module,
-    pub rooted_export_types: HashSet<String>,
-    pub rooted_export_values: HashSet<String>,
+    pub rooted_export_types: HashSet<JsWord>,
+    pub rooted_export_values: HashSet<JsWord>,
 }
 
 pub enum Import {
@@ -149,7 +149,22 @@ impl<'a> NodeInitSession<'a> {
             session.process_module_item(item)?;
         }
 
-        todo!("Insert node and edges into graph");
+        let rooted_export_types = session.rooted_types;
+        let rooted_export_values = session.rooted_values;
+        let import_edges = session.import_edges;
+        let export_edges = session.export_edges;
+
+        let module_node = ModuleNode {
+            path: module_data.path.clone(),
+            ast: module_data.module_ast,
+            rooted_export_types,
+            rooted_export_values,
+        };
+
+        g.nodes.insert(module_data.path.clone(), module_node);
+
+        g.export_edges.insert(module_data.path.clone(), export_edges);
+        g.import_edges.insert(module_data.path, import_edges);
 
         Ok(())
     }
