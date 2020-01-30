@@ -11,7 +11,17 @@ use super::bind_common;
 use super::structures::CanonPath;
 use super::error::*;
 
-pub struct ParsedModuleCache(pub HashMap<CanonPath, ModuleData>);
+pub struct ParsedModuleCache {
+    pub root: CanonPath,
+    cache: HashMap<CanonPath, ModuleData>,
+}
+
+impl ParsedModuleCache {
+    pub fn get(&self, path: &CanonPath) -> &ModuleData {
+        self.cache.get(path)
+            .expect("Module missing from cache")
+    }
+}
 
 pub struct ModuleData {
     pub path: CanonPath,
@@ -43,7 +53,7 @@ pub fn init<'a>(
             }
         })?;
 
-    let mut work_stack: Vec<(CanonPath, Option<Span>)> = vec![(root_module_path, None)];
+    let mut work_stack: Vec<(CanonPath, Option<Span>)> = vec![(root_module_path.clone(), None)];
 
     while !work_stack.is_empty() {
         let (current_path, span) = work_stack
@@ -77,7 +87,10 @@ pub fn init<'a>(
         module_cache.insert(current_path.clone(), module_data);
     }
 
-    Ok(ParsedModuleCache(module_cache))
+    Ok(ParsedModuleCache {
+        root: root_module_path,
+        cache: module_cache
+    })
 }
 
 fn scan_dependencies(
