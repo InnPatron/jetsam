@@ -15,7 +15,7 @@ pub fn init(cache: &ModuleCache) -> Result<ModuleGraph, BindGenError> {
         import_edges: HashMap::new(),
     };
 
-    for (_, module_data) in cache.0.iter() {
+    for (_, module_data) in cache.iter() {
         NodeInitSession::init(&mut graph, cache, module_data)?;
     }
 
@@ -24,8 +24,8 @@ pub fn init(cache: &ModuleCache) -> Result<ModuleGraph, BindGenError> {
 
 pub struct ModuleNode {
     pub path: CanonPath,
-    pub rooted_export_types: HashMap<JsWord, Type>,
-    pub rooted_export_values: HashMap<JsWord, Type>,
+    pub rooted_export_types: HashSet<JsWord>,
+    pub rooted_export_values: HashSet<JsWord>,
 }
 
 pub enum Import {
@@ -78,9 +78,7 @@ enum ItemState {
         as_key: JsWord,
     },
 
-    Rooted {
-        typ: Type,
-    },
+    Rooted,
 }
 
 #[derive(Copy, Clone)]
@@ -95,8 +93,8 @@ struct NodeInitSession<'a> {
     dependency_map: &'a HashMap<String, CanonPath>,
     import_edges: Vec<Import>,
     export_edges: Vec<Export>,
-    rooted_values: HashMap<JsWord, Type>,
-    rooted_types: HashMap<JsWord, Type>,
+    rooted_values: HashSet<JsWord>,
+    rooted_types: HashSet<JsWord>,
 
     value_scope: HashMap<JsWord, ItemState>,
     type_scope: HashMap<JsWord, ItemState>,
@@ -121,8 +119,8 @@ impl<'a> NodeInitSession<'a> {
             dependency_map: &module_data.dependencies,
             import_edges: Vec::new(),
             export_edges: Vec::new(),
-            rooted_values: HashMap::new(),
-            rooted_types: HashMap::new(),
+            rooted_values: HashSet::new(),
+            rooted_types: HashSet::new(),
 
             value_scope: HashMap::new(),
             type_scope: HashMap::new(),
@@ -360,10 +358,8 @@ impl<'a> NodeInitSession<'a> {
                                         });
                                     }
 
-                                    ItemState::Rooted {
-                                        ref typ,
-                                    } => {
-                                        self.rooted_values.insert(export_key.clone(), typ.clone());
+                                    ItemState::Rooted => {
+                                        self.rooted_values.insert(export_key.clone());
                                     }
                                 }
                             }
@@ -383,10 +379,8 @@ impl<'a> NodeInitSession<'a> {
                                         });
                                     }
 
-                                    ItemState::Rooted {
-                                        ref typ,
-                                    }=> {
-                                        self.rooted_types.insert(export_key, typ.clone());
+                                    ItemState::Rooted => {
+                                        self.rooted_types.insert(export_key);
                                     }
                                 }
                             }
@@ -402,34 +396,31 @@ impl<'a> NodeInitSession<'a> {
     }
 
     fn process_decl(&mut self, decl: &Decl, export: bool) -> Result<(), BindGenError> {
-        let (symbol_type, scope_kind): (Vec<(JsWord, Type)>, ScopeKind) = match decl {
+        let (symbols, scope_kind) = match decl {
             Decl::Class(ClassDecl {
                 ref ident,
                 ..
             }) => {
-                todo!("Generate type");
-                (vec![(ident.sym.clone(), Type::Any)], ScopeKind::ValueType)
+                (vec![ident.sym.clone()], ScopeKind::ValueType)
             },
 
             Decl::Fn(FnDecl {
                 ident,
                 ..
             }) => {
-                todo!("Generate type");
-                (vec![(ident.sym.clone(), Type::Any)], ScopeKind::Value)
+                (vec![ident.sym.clone()], ScopeKind::Value)
             },
 
             Decl::Var(VarDecl {
                 decls,
                 ..
             }) => {
-                todo!("Generate type");
                 let mut symbols = Vec::new();
                 decls.iter()
                     .for_each(|decl| {
                         match decl.name {
                             Pat::Ident(ref ident) => {
-                                symbols.push((ident.sym.clone(), Type::Any));
+                                symbols.push(ident.sym.clone());
                             },
 
                             _ => todo!("Handle all patterns"),
@@ -443,24 +434,21 @@ impl<'a> NodeInitSession<'a> {
                 id,
                 ..
             }) => {
-                todo!("Generate type");
-                (vec![(id.sym.clone(), Type::Any)], ScopeKind::Type)
+                (vec![id.sym.clone()], ScopeKind::Type)
             },
 
             Decl::TsTypeAlias(TsTypeAliasDecl {
                 id,
                 ..
             }) => {
-                todo!("Generate type");
-                (vec![(id.sym.clone(), Type::Any)], ScopeKind::Type)
+                (vec![id.sym.clone()], ScopeKind::Type)
             },
 
             Decl::TsEnum(TsEnumDecl {
                 id,
                 ..
             }) => {
-                todo!("Generate type");
-                (vec![(id.sym.clone(), Type::Any)], ScopeKind::Type)
+                (vec![id.sym.clone()], ScopeKind::Type)
             },
 
             Decl::TsModule(m) => {
@@ -468,37 +456,31 @@ impl<'a> NodeInitSession<'a> {
             },
         };
 
-        for (symbol, typ) in symbol_type.into_iter() {
+        for symbol in symbols.into_iter() {
 
 
             match scope_kind {
                 ScopeKind::Value => {
                     if export {
-                        self.rooted_values.insert(symbol.clone(), typ.clone());
+                        self.rooted_values.insert(symbol.clone());
                     }
 
-                    self.scope_item(symbol, ItemState::Rooted {
-                        typ,
-                    }, scope_kind);
+                    self.scope_item(symbol, ItemState::Rooted, scope_kind);
                 }
 
                 ScopeKind::Type => {
                     if export {
-                        self.rooted_types.insert(symbol.clone(), typ.clone());
+                        self.rooted_types.insert(symbol.clone());
                     }
-                    self.scope_item(symbol, ItemState::Rooted {
-                        typ,
-                    }, scope_kind);
+                    self.scope_item(symbol, ItemState::Rooted, scope_kind);
                 }
 
                 ScopeKind::ValueType => {
                     if export {
-                        self.rooted_types.insert(symbol.clone(), typ.clone());
-                        self.rooted_values.insert(symbol.clone(), typ.clone());
+                        self.rooted_types.insert(symbol.clone());
+                        self.rooted_values.insert(symbol.clone());
                     }
-                    self.scope_item(symbol, ItemState::Rooted {
-                        typ,
-                    }, scope_kind);
+                    self.scope_item(symbol, ItemState::Rooted, scope_kind);
                 }
             }
         }
@@ -551,172 +533,6 @@ impl<'a> NodeInitSession<'a> {
                     span: namespace.span,
                 })
             }
-        }
-    }
-
-    fn type_from_ann(
-        &self,
-        ann: TsTypeAnn,
-    ) -> Result<Type, BindGenError> {
-        let ann_span = ann.span;
-
-        self.bind_type(*ann.type_ann)
-    }
-
-    fn bind_type(
-        &self,
-        typ: TsType,
-    ) -> Result<Type, BindGenError> {
-
-        match typ {
-            TsType::TsKeywordType(TsKeywordType {
-                span,
-                kind,
-            }) => {
-
-                let prim_type = match kind {
-                    TsKeywordTypeKind::TsAnyKeyword => Type::Any,
-                    TsKeywordTypeKind::TsUnknownKeyword => todo!("unknown keyword type"),
-                    TsKeywordTypeKind::TsNumberKeyword => Type::Number,
-                    TsKeywordTypeKind::TsObjectKeyword => Type::Object,
-                    TsKeywordTypeKind::TsBooleanKeyword => Type::Boolean,
-                    TsKeywordTypeKind::TsBigIntKeyword => todo!("big int keyword type"),
-                    TsKeywordTypeKind::TsStringKeyword => Type::String,
-                    TsKeywordTypeKind::TsSymbolKeyword => todo!("symbol keyword type"),
-                    TsKeywordTypeKind::TsVoidKeyword => Type::Void,
-                    TsKeywordTypeKind::TsUndefinedKeyword => Type::Undefined,
-                    TsKeywordTypeKind::TsNullKeyword => Type::Null,
-                    TsKeywordTypeKind::TsNeverKeyword => Type::Never,
-                };
-
-                Ok(prim_type)
-            },
-
-            TsType::TsThisType(TsThisType {
-                span,
-            }) => {
-                todo!("What is TsThisType?");
-            },
-
-            TsType::TsFnOrConstructorType(TsFnOrConstructorType::TsFnType(TsFnType {
-                span,
-                params,
-                type_params,
-                type_ann,
-            })) => {
-                // What is type_ann
-                // Is type_ann the return type?
-                todo!("ts fn");
-            },
-
-            TsType::TsFnOrConstructorType(TsFnOrConstructorType::TsConstructorType(TsConstructorType {
-                span,
-                params,
-                type_params,
-                type_ann,
-            })) => {
-                // What is type_ann
-                // Is type_ann the return type?
-                todo!("ts constructor");
-            },
-
-            TsType::TsTypeRef(TsTypeRef {
-                span,
-                type_name,
-                type_params,
-            }) => {
-                // todo!("{}:{:?}", module_info.path().display(), type_name);
-                // TODO: TsTypeRef
-
-                Ok(Type::Any)
-            },
-
-            TsType::TsTypeQuery(_TsTypeQuery) => {
-                todo!("ts type query");
-            },
-
-            TsType::TsTypeLit(..) => {
-                todo!("ts type literals not supported");
-            },
-
-            TsType::TsArrayType(TsArrayType {
-                span,
-                elem_type,
-            }) => {
-                let elem_type = Box::new(self.bind_type(*elem_type)?);
-                Ok(Type::UnsizedArray(elem_type))
-            },
-
-            TsType::TsTupleType(TsTupleType {
-                span,
-                elem_types,
-            }) => {
-                // Tuple types are fixed-length arrays (at init)
-                todo!("ts tuple type");
-            },
-
-            TsType::TsOptionalType(..) => {
-                todo!("ts optional types not supported");
-            },
-
-            TsType::TsRestType(..) => {
-                todo!("ts rest types not supported");
-            },
-
-            TsType::TsUnionOrIntersectionType(TsUnionOrIntersectionType::TsUnionType(TsUnionType {
-                span,
-                types,
-            })) => {
-                // TODO: How to bind union types?
-                // Keep opaque for now
-                Ok(Type::Union)
-            },
-
-            TsType::TsUnionOrIntersectionType(TsUnionOrIntersectionType::TsIntersectionType(..)) => {
-                todo!("ts intersection types not supported");
-            },
-
-            TsType::TsConditionalType(..) => {
-                todo!("ts conditional types not supported");
-            },
-
-            TsType::TsInferType(..) => {
-                todo!("ts infer type not supported");
-            },
-
-            TsType::TsParenthesizedType(TsParenthesizedType {
-                span,
-                type_ann,
-            }) => {
-                todo!("parenthesized type");
-            },
-
-            TsType::TsTypeOperator(_TsTypeOperator) => {
-                todo!("type operators not supported");
-            },
-
-            TsType::TsIndexedAccessType(_TsIndexedAccessType) => {
-                todo!("ts indexed access type not supported");
-            },
-
-            TsType::TsMappedType(_TsMappedType) => {
-                todo!("ts mapped type not supported");
-            },
-
-            TsType::TsLitType(TsLitType {
-                span,
-                lit,
-            }) => {
-                todo!("ts lit type");
-            },
-
-            TsType::TsTypePredicate(_TsTypePredicate) => {
-                todo!("ts type predicates not supported?");
-            },
-
-            TsType::TsImportType(_TsImportType) => {
-                todo!("What is TsImportType?");
-            },
         }
     }
 }
