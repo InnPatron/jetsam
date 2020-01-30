@@ -21,6 +21,10 @@ impl ParsedModuleCache {
         self.cache.get(path)
             .expect("Module missing from cache")
     }
+
+    pub fn iter(&self) -> impl Iterator<Item=(&CanonPath, &ModuleData)> {
+        self.cache.iter()
+    }
 }
 
 pub struct ModuleData {
