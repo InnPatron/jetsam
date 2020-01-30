@@ -8,14 +8,14 @@ use super::bind_init;
 use super::structures::CanonPath;
 use super::error::*;
 
-pub fn init(cache: bind_init::ParsedModuleCache) -> Result<ModuleGraph, BindGenError> {
+pub fn init(cache: &bind_init::ParsedModuleCache) -> Result<ModuleGraph, BindGenError> {
     let mut graph = ModuleGraph {
         nodes: HashMap::new(),
         export_edges: HashMap::new(),
         import_edges: HashMap::new(),
     };
 
-    for (_, module_data) in cache.0.into_iter() {
+    for (_, module_data) in cache.0.iter() {
         NodeInitSession::init(&mut graph, module_data)?;
     }
 
@@ -24,7 +24,6 @@ pub fn init(cache: bind_init::ParsedModuleCache) -> Result<ModuleGraph, BindGenE
 
 pub struct ModuleNode {
     pub path: CanonPath,
-    pub ast: Module,
     pub rooted_export_types: HashSet<JsWord>,
     pub rooted_export_values: HashSet<JsWord>,
 }
@@ -137,7 +136,7 @@ impl<'a> NodeInitSession<'a> {
 
     }
 
-    fn init(g: &mut ModuleGraph, module_data: bind_init::ModuleData) -> Result<(), BindGenError> {
+    fn init(g: &mut ModuleGraph, module_data: &bind_init::ModuleData) -> Result<(), BindGenError> {
         let mut session = NodeInitSession {
             path: &module_data.path,
             dependency_map: &module_data.dependencies,
@@ -161,7 +160,6 @@ impl<'a> NodeInitSession<'a> {
 
         let module_node = ModuleNode {
             path: module_data.path.clone(),
-            ast: module_data.module_ast,
             rooted_export_types,
             rooted_export_values,
         };
@@ -169,7 +167,7 @@ impl<'a> NodeInitSession<'a> {
         g.nodes.insert(module_data.path.clone(), module_node);
 
         g.export_edges.insert(module_data.path.clone(), export_edges);
-        g.import_edges.insert(module_data.path, import_edges);
+        g.import_edges.insert(module_data.path.clone(), import_edges);
 
         Ok(())
     }
