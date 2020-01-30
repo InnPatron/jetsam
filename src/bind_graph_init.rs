@@ -111,39 +111,6 @@ macro_rules! get_dep_src {
 
 impl<'a> NodeInitSession<'a> {
 
-    fn scope_item(&mut self, name: JsWord, state: ItemState, kind: ScopeKind) {
-        use std::collections::hash_map::Entry;
-
-        match kind {
-            ScopeKind::Value => {
-                match self.value_scope.entry(name) {
-                    Entry::Vacant(vacant) => { vacant.insert(state); },
-                    Entry::Occupied(ref mut occupied) => (),
-                }
-            }
-
-            ScopeKind::Type => {
-                match self.type_scope.entry(name) {
-                    Entry::Vacant(vacant) => { vacant.insert(state); },
-                    Entry::Occupied(ref mut occupied) => (),
-                }
-            }
-
-            ScopeKind::ValueType => {
-                match self.type_scope.entry(name.clone()) {
-                    Entry::Vacant(vacant) => { vacant.insert(state.clone()); },
-                    Entry::Occupied(ref mut occupied) => (),
-                }
-
-                match self.value_scope.entry(name) {
-                    Entry::Vacant(vacant) => { vacant.insert(state); },
-                    Entry::Occupied(ref mut occupied) => (),
-                }
-            }
-        }
-
-    }
-
     fn init(
         g: &mut ModuleGraph,
         cache: &ModuleCache,
@@ -182,6 +149,39 @@ impl<'a> NodeInitSession<'a> {
         g.import_edges.insert(module_data.path.clone(), import_edges);
 
         Ok(())
+    }
+
+    fn scope_item(&mut self, name: JsWord, state: ItemState, kind: ScopeKind) {
+        use std::collections::hash_map::Entry;
+
+        match kind {
+            ScopeKind::Value => {
+                match self.value_scope.entry(name) {
+                    Entry::Vacant(vacant) => { vacant.insert(state); },
+                    Entry::Occupied(ref mut occupied) => (),
+                }
+            }
+
+            ScopeKind::Type => {
+                match self.type_scope.entry(name) {
+                    Entry::Vacant(vacant) => { vacant.insert(state); },
+                    Entry::Occupied(ref mut occupied) => (),
+                }
+            }
+
+            ScopeKind::ValueType => {
+                match self.type_scope.entry(name.clone()) {
+                    Entry::Vacant(vacant) => { vacant.insert(state.clone()); },
+                    Entry::Occupied(ref mut occupied) => (),
+                }
+
+                match self.value_scope.entry(name) {
+                    Entry::Vacant(vacant) => { vacant.insert(state); },
+                    Entry::Occupied(ref mut occupied) => (),
+                }
+            }
+        }
+
     }
 
     fn process_module_item(&mut self, item: &ModuleItem) -> Result<(), BindGenError> {
