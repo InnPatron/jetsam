@@ -4,7 +4,7 @@ mod structures;
 mod bind_init;
 mod bind_common;
 mod bind_graph_init;
-mod bind_graph;
+// mod bind_graph;
 // mod emit;
 // mod emit_structures;
 
@@ -66,20 +66,32 @@ Some(cm.clone()));
             handler: &handler,
         };
 
-        let module_graph: Result<bind_graph::ModuleGraph, _> = (|| {
-            let module_cache =
-                bind_init::init(cm.clone(), session, input_path)?;
-            bind_graph::build_module_graph(module_cache)
-        })();
-
-        let module_graph = match module_graph {
-            Ok(v) => v,
+        let cache = match bind_init::init(cm.clone(), session, input_path) {
+            Ok(c) => c,
 
             Err(e) => {
-                eprintln!("bind-gen error: {:?}", e);
+                eprintln!("module cache error: {:?}", e);
                 std::process::exit(1);
             }
         };
+
+        let graph = match bind_graph_init::init(&cache) {
+            Ok(g) => g,
+
+            Err(e) => {
+                eprintln!("graph init error: {:?}", e);
+                std::process::exit(1);
+            }
+        };
+
+        //let final_graph = match bind_graph::build_module_graph(cache, graph) {
+        //    Ok(g) => g,
+
+        //    Err(e) => {
+        //        eprintln!("bind-gen error: {:?}", e);
+        //        std::process::exit(1);
+        //    }
+        //};
 
         //let context =
         //    bind_gen::Context::new(
