@@ -174,6 +174,10 @@ pub struct Value {
 
 #[derive(Debug, Clone)]
 pub enum Type {
+    Named {
+        name: String,
+        source: CanonPath,
+    },
     Fn {
         origin: String,
         type_signature: FnType,
@@ -196,11 +200,6 @@ pub enum Type {
     UnsizedArray(Box<Type>),
     Array(Box<Type>, usize),
     Union,
-    Primitive(PrimitiveType),
-}
-
-#[derive(Debug, Clone)]
-pub enum PrimitiveType {
     Boolean,
     Number,
     String,
