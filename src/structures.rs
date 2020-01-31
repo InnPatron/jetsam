@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use swc_atoms::JsWord;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
@@ -175,26 +176,18 @@ pub struct Value {
 #[derive(Debug, Clone)]
 pub enum Type {
     Named {
-        name: String,
+        name: JsWord,
         source: CanonPath,
     },
-    Fn {
-        origin: String,
-        type_signature: FnType,
-    },
-    Class {
-        name: String,
-        origin: String,
-        constructor: Box<Type>,
-        fields: HashMap<String, Type>,
-    },
+    Fn(FnType),
+    Class(ClassType),
     Interface {
-        name: String,
-        origin: String,
-        fields: HashMap<String, Type>,
+        name: JsWord,
+        origin: CanonPath,
+        fields: HashMap<JsWord, Type>,
     },
     Alias {
-        name: String,
+        name: JsWord,
         aliasing_type: Box<Type>,
     },
     UnsizedArray(Box<Type>),
@@ -214,7 +207,15 @@ pub enum Type {
 #[derive(Debug, Clone)]
 pub struct FnType {
     pub params: Vec<Type>,
-    pub return_type: Option<Box<Type>>,
+    pub return_type: Box<Type>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ClassType {
+    pub name: JsWord,
+    pub origin: CanonPath,
+    pub constructors: Vec<FnType>,
+    pub members: HashMap<JsWord, Type>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
