@@ -15,11 +15,11 @@ use super::bind_graph_init::{
     ScopeKind,
 };
 
-pub fn typify(cache: &ModuleCache, graph: &UTModuleGraph) -> Result<ModuleGraph, BindGenError> {
+pub fn typify(cache: &ModuleCache, ut_graph: UTModuleGraph) -> Result<ModuleGraph, BindGenError> {
     let mut graph = ModuleGraph {
         nodes: HashMap::new(),
-        export_edges: HashMap::new(),
-        import_edges: HashMap::new(),
+        export_edges: ut_graph.export_edges,
+        import_edges: ut_graph.import_edges,
     };
 
     for (_, module_data) in cache.iter() {
@@ -68,8 +68,6 @@ struct NodeInitSession<'a> {
     path: &'a CanonPath,
     dependency_map: &'a HashMap<String, CanonPath>,
     cache: &'a ModuleCache,
-    import_edges: Vec<Import>,
-    export_edges: Vec<Export>,
     rooted_values: HashMap<JsWord, Type>,
     rooted_types: HashMap<JsWord, Type>,
 
@@ -96,8 +94,6 @@ impl<'a> NodeInitSession<'a> {
             dependency_map: &module_data.dependencies,
             cache,
 
-            import_edges: Vec::new(),
-            export_edges: Vec::new(),
             rooted_values: HashMap::new(),
             rooted_types: HashMap::new(),
 
@@ -111,8 +107,6 @@ impl<'a> NodeInitSession<'a> {
 
         let rooted_export_types = session.rooted_types;
         let rooted_export_values = session.rooted_values;
-        let import_edges = session.import_edges;
-        let export_edges = session.export_edges;
 
         let module_node = ModuleNode {
             path: module_data.path.clone(),
@@ -121,9 +115,6 @@ impl<'a> NodeInitSession<'a> {
         };
 
         g.nodes.insert(module_data.path.clone(), module_node);
-
-        g.export_edges.insert(module_data.path.clone(), export_edges);
-        g.import_edges.insert(module_data.path.clone(), import_edges);
 
         Ok(())
     }
@@ -203,11 +194,6 @@ impl<'a> NodeInitSession<'a> {
                 ref src,
                 ..
             }) => {
-                let dep_canon_path = get_dep_src!(self, src);
-                self.export_edges.push(Export::All {
-                    source: dep_canon_path.clone(),
-                });
-
                 Ok(())
             }
 
@@ -297,13 +283,7 @@ impl<'a> NodeInitSession<'a> {
                                         ref source,
                                         ref src_key,
                                         ref as_key,
-                                    } => {
-                                        self.export_edges.push(Export::Named {
-                                            source: source.clone(),
-                                            src_key: src_key.clone(),
-                                            export_key: as_key.clone(),
-                                        });
-                                    }
+                                    } => (),
 
                                     ItemState::Rooted {
                                         ref typ,
@@ -320,13 +300,7 @@ impl<'a> NodeInitSession<'a> {
                                         ref source,
                                         ref src_key,
                                         ref as_key,
-                                    } => {
-                                        self.export_edges.push(Export::Named {
-                                            source: source.clone(),
-                                            src_key: src_key.clone(),
-                                            export_key: as_key.clone(),
-                                        });
-                                    }
+                                    } => (),
 
                                     ItemState::Rooted {
                                         ref typ,
@@ -458,11 +432,6 @@ impl<'a> NodeInitSession<'a> {
                     .unwrap_or(specific.local.sym.clone());
 
                 let as_key = specific.local.sym.clone();
-
-                self.import_edges.push(Import::Named {
-                    source: source.clone(),
-                    src_key: src_key.clone(),
-                });
 
                 let item = ItemState::Imported {
                     source: source.clone(),

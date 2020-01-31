@@ -85,7 +85,7 @@ Some(cm.clone()));
             }
         };
 
-        let final_graph = match typify_graph::typify(&cache, &graph) {
+        let typed_graph = match typify_graph::typify(&cache, graph) {
             Ok(g) => g,
 
             Err(e) => {
