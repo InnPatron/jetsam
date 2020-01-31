@@ -673,7 +673,10 @@ impl<'a> NodeInitSession<'a> {
             TsType::TsThisType(TsThisType {
                 ref span,
             }) => {
-                todo!("What is TsThisType?");
+                // TODO: What is TsThisType?
+                //   `this` type is used for class members and refers to the class
+
+                Ok(Type::Any)
             },
 
             TsType::TsFnOrConstructorType(TsFnOrConstructorType::TsFnType(TsFnType {
