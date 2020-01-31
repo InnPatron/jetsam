@@ -186,6 +186,9 @@ pub enum Type {
         origin: CanonPath,
         fields: HashMap<JsWord, Type>,
     },
+    Literal {
+        fields: HashMap<JsWord, Type>,
+    },
     Alias {
         name: JsWord,
         aliasing_type: Box<Type>,

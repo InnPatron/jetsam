@@ -593,6 +593,38 @@ impl<'a> NodeInitSession<'a> {
         }))
     }
 
+    fn gen_type_element<F>(
+        &self,
+        element: &TsTypeElement,
+        mut f: F
+    ) -> Result<(), BindGenError>
+    where F: FnMut(JsWord, Type) -> () {
+        match element {
+            TsTypeElement::TsPropertySignature(ref signature) => {
+
+                match *signature.key {
+                    Expr::Ident(ref ident) => {
+                        let typ = ident.type_ann
+                            .as_ref()
+                            .map(|ann| self.type_from_ann(ann))
+                            .transpose()?
+                            .unwrap_or(Type::Any);
+
+                        f(ident.sym.clone(), typ);
+                        Ok(())
+                    }
+
+                    _ => todo!("Unsupported key expr (not ident)"),
+                }
+            }
+
+            // TODO: Log that TsIndexSignature was skipped
+            TsTypeElement::TsIndexSignature(..) => Ok(()),
+
+            ref x => todo!("[{:?}]Handle TsTypeElement: {:?}", self.path.as_path().display(), x),
+        }
+    }
+
     fn gen_interface_type(
         &self,
         decl: &TsInterfaceDecl
@@ -602,27 +634,11 @@ impl<'a> NodeInitSession<'a> {
         let mut fields: HashMap<JsWord, Type> = HashMap::new();
 
         for ts_type_element in decl.body.body.iter() {
-            match ts_type_element {
-                TsTypeElement::TsPropertySignature(ref signature) => {
+            self.gen_type_element(ts_type_element,
+                |sym, typ| {
+                    fields.insert(sym, typ);
 
-                    match *signature.key {
-                        Expr::Ident(ref ident) => {
-                            let typ = ident.type_ann
-                                .as_ref()
-                                .map(|ann| self.type_from_ann(ann))
-                                .transpose()?
-                                .unwrap_or(Type::Any);
-
-                            fields.insert(ident.sym.clone(), typ);
-                        }
-
-                        _ => todo!("Unsupported key expr (not ident)"),
-                    }
-                }
-
-                _ => todo!("Handle TsTypeElement"),
-            }
-
+                })?;
         }
 
         Ok(Type::Interface {
@@ -736,8 +752,17 @@ impl<'a> NodeInitSession<'a> {
                 todo!("ts type query");
             },
 
-            TsType::TsTypeLit(..) => {
-                todo!("ts type literals not supported");
+            TsType::TsTypeLit(ref lit) => {
+
+                let mut fields = HashMap::new();
+                for type_element in lit.members.iter() {
+                    self.gen_type_element(type_element,
+                        |sym, typ| { fields.insert(sym, typ); })?;
+                }
+
+                Ok(Type::Literal {
+                    fields,
+                })
             },
 
             TsType::TsArrayType(TsArrayType {
