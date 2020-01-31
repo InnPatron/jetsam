@@ -396,8 +396,11 @@ impl<'a> NodeInitSession<'a> {
                 id,
                 ..
             }) => {
-                todo!("Generate type");
-                (vec![(id.sym.clone(), Type::Any)], ScopeKind::Type)
+                let typ = Type::Opaque {
+                    name: id.sym.clone(),
+                    origin: self.path.clone(),
+                };
+                (vec![(id.sym.clone(), typ)], ScopeKind::Type)
             },
 
             Decl::TsModule(m) => {
@@ -601,25 +604,47 @@ impl<'a> NodeInitSession<'a> {
     where F: FnMut(JsWord, Type) -> () {
         match element {
             TsTypeElement::TsPropertySignature(ref signature) => {
+                let ident = ident_from_key(&*signature.key);
+                let typ = ident.type_ann
+                    .as_ref()
+                    .map(|ann| self.type_from_ann(ann))
+                    .transpose()?
+                    .unwrap_or(Type::Any);
 
-                match *signature.key {
-                    Expr::Ident(ref ident) => {
-                        let typ = ident.type_ann
-                            .as_ref()
-                            .map(|ann| self.type_from_ann(ann))
-                            .transpose()?
-                            .unwrap_or(Type::Any);
-
-                        f(ident.sym.clone(), typ);
-                        Ok(())
-                    }
-
-                    _ => todo!("Unsupported key expr (not ident)"),
-                }
+                f(ident.sym.clone(), typ);
+                Ok(())
             }
 
             // TODO: Log that TsIndexSignature was skipped
             TsTypeElement::TsIndexSignature(..) => Ok(()),
+
+            TsTypeElement::TsMethodSignature(ref signature) => {
+                let ident = ident_from_key(&*signature.key);
+                let return_type = signature.type_ann
+                    .as_ref()
+                    .map(|ann| self.type_from_ann(ann))
+                    .transpose()?
+                    .unwrap_or(Type::Any);
+
+                let params = signature.params.iter()
+                    .map(|fn_param| {
+                        let ann = ann_from_fn_param(fn_param);
+                        Ok(ann
+                            .map(|ann| self.type_from_ann(ann))
+                            .transpose()?
+                            .unwrap_or(Type::Any))
+                    })
+                .collect::<Result<Vec<Type>, _>>()?;
+
+                let typ = Type::Fn(FnType {
+                    params,
+                    return_type: Box::new(return_type),
+                });
+
+                f(ident.sym.clone(), typ);
+
+                Ok(())
+            }
 
             ref x => todo!("[{:?}]Handle TsTypeElement: {:?}", self.path.as_path().display(), x),
         }
@@ -705,12 +730,7 @@ impl<'a> NodeInitSession<'a> {
 
                 let mut new_params = Vec::new();
                 for param in params {
-                    let ann = match param {
-                        TsFnParam::Ident(ref pat) => pat.type_ann.as_ref(),
-                        TsFnParam::Array(ref pat) => pat.type_ann.as_ref(),
-                        TsFnParam::Object(ref pat) => pat.type_ann.as_ref(),
-                        TsFnParam::Rest(ref pat) => pat.type_ann.as_ref(),
-                    };
+                    let ann = ann_from_fn_param(param);
 
                     let typ = ann
                         .map(|ann| self.type_from_ann(ann))
@@ -856,5 +876,22 @@ fn ann_from_pat(p: &Pat) -> Option<&TsTypeAnn> {
         Pat::Assign(ref pat) => pat.type_ann.as_ref(),
         Pat::Invalid(..) => None,
         Pat::Expr(..) => None,
+    }
+}
+
+fn ann_from_fn_param(p: &TsFnParam) -> Option<&TsTypeAnn> {
+    match p {
+        TsFnParam::Ident(ref pat) => pat.type_ann.as_ref(),
+        TsFnParam::Array(ref pat) => pat.type_ann.as_ref(),
+        TsFnParam::Object(ref pat) => pat.type_ann.as_ref(),
+        TsFnParam::Rest(ref pat) => pat.type_ann.as_ref(),
+    }
+}
+
+fn ident_from_key(key: &Expr) -> &Ident {
+    match key {
+        Expr::Ident(ref ident) => ident,
+
+        _ => todo!("Unsupported key expr (not ident)"),
     }
 }

@@ -193,6 +193,10 @@ pub enum Type {
         name: JsWord,
         aliasing_type: Box<Type>,
     },
+    Opaque {
+        name: JsWord,
+        origin: CanonPath,
+    },
     UnsizedArray(Box<Type>),
     Array(Box<Type>, usize),
     Union,
