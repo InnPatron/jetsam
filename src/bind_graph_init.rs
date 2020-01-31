@@ -82,7 +82,7 @@ enum ItemState {
 }
 
 #[derive(Copy, Clone)]
-enum ScopeKind {
+pub enum ScopeKind {
     Value,
     Type,
     ValueType,
