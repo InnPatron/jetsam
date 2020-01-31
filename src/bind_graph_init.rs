@@ -5,7 +5,7 @@ use swc_atoms::JsWord;
 use swc_common::Span;
 
 use super::bind_init::{ModuleData, ParsedModuleCache as ModuleCache};
-use super::structures::{Type, CanonPath};
+use super::structures::CanonPath;
 use super::error::*;
 
 pub fn init(cache: &ModuleCache) -> Result<ModuleGraph, BindGenError> {
