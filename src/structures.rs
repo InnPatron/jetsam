@@ -6,6 +6,26 @@ use swc_atoms::JsWord;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
+struct Scope<T> {
+    map: HashMap<String, T>,
+}
+
+impl<T> Scope<T> {
+    pub fn new() -> Self {
+        Scope {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn insert(&mut self, key: String, v: T) {
+        self.map.insert(key, v);
+    }
+
+    pub fn get(&self, key: &str) -> Option<&T> {
+        self.map.get(key)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CanonPath(PathBuf);
 
