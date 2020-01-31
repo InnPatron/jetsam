@@ -685,9 +685,29 @@ impl<'a> NodeInitSession<'a> {
                 ref type_params,
                 ref type_ann,
             })) => {
-                // What is type_ann
-                // Is type_ann the return type?
-                todo!("ts fn");
+                // TODO: Is type_ann the return type?
+
+                let mut new_params = Vec::new();
+                for param in params {
+                    let ann = match param {
+                        TsFnParam::Ident(ref pat) => pat.type_ann.as_ref(),
+                        TsFnParam::Array(ref pat) => pat.type_ann.as_ref(),
+                        TsFnParam::Object(ref pat) => pat.type_ann.as_ref(),
+                        TsFnParam::Rest(ref pat) => pat.type_ann.as_ref(),
+                    };
+
+                    let typ = ann
+                        .map(|ann| self.type_from_ann(ann))
+                        .transpose()?
+                        .unwrap_or(Type::Any);
+
+                    new_params.push(typ);
+                }
+
+                Ok(Type::Fn(FnType {
+                    params: new_params,
+                    return_type: Box::new(Type::Any),
+                }))
             },
 
             TsType::TsFnOrConstructorType(TsFnOrConstructorType::TsConstructorType(TsConstructorType {
