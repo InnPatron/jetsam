@@ -4,6 +4,7 @@ mod structures;
 mod bind_init;
 mod bind_common;
 mod bind_graph_init;
+mod typify_graph;
 // mod bind_graph;
 // mod emit;
 // mod emit_structures;
@@ -84,14 +85,14 @@ Some(cm.clone()));
             }
         };
 
-        //let final_graph = match bind_graph::build_module_graph(cache, graph) {
-        //    Ok(g) => g,
+        let final_graph = match typify_graph::typify(&cache, &graph) {
+            Ok(g) => g,
 
-        //    Err(e) => {
-        //        eprintln!("bind-gen error: {:?}", e);
-        //        std::process::exit(1);
-        //    }
-        //};
+            Err(e) => {
+                eprintln!("bind-gen error: {:?}", e);
+                std::process::exit(1);
+            }
+        };
 
         //let context =
         //    bind_gen::Context::new(
