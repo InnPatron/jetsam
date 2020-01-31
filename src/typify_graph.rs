@@ -354,7 +354,7 @@ impl<'a> NodeInitSession<'a> {
             },
 
             Decl::Fn(ref decl) => {
-                let typ = self.gen_fn_type(decl)?;
+                let typ = self.gen_fn_type(&decl.function)?;
                 (vec![(decl.ident.sym.clone(), typ)], ScopeKind::Value)
             },
 
@@ -387,12 +387,9 @@ impl<'a> NodeInitSession<'a> {
                 (vec![(decl.id.sym.clone(), typ)], ScopeKind::Type)
             },
 
-            Decl::TsTypeAlias(TsTypeAliasDecl {
-                id,
-                ..
-            }) => {
-                todo!("Generate type");
-                (vec![(id.sym.clone(), Type::Any)], ScopeKind::Type)
+            Decl::TsTypeAlias(ref alias) => {
+                let typ = self.bind_type(&*alias.type_ann)?;
+                (vec![(alias.id.sym.clone(), typ)], ScopeKind::Type)
             },
 
             Decl::TsEnum(TsEnumDecl {
@@ -496,17 +493,17 @@ impl<'a> NodeInitSession<'a> {
 
     fn gen_fn_type(
         &self,
-        decl: &FnDecl
+        function: &Function
     ) -> Result<Type, BindGenError> {
         let mut params: Vec<Type> = Vec::new();
 
-        let return_type = decl.function.return_type
+        let return_type = function.return_type
             .as_ref()
             .map(|ann| self.type_from_ann(ann))
             .transpose()?
             .unwrap_or(Type::Any);
 
-        for param in decl.function.params.iter() {
+        for param in function.params.iter() {
             let ann = ann_from_pat(param);
 
             let typ = ann
@@ -571,7 +568,19 @@ impl<'a> NodeInitSession<'a> {
                     });
                 }
 
-                _ => todo!("Handle ClassMember"),
+                ClassMember::Method(ref method) => {
+                    // TODO: Self parameter
+                    let typ = self.gen_fn_type(&method.function)?;
+                    let key = match method.key {
+                        PropName::Ident(ref ident) => ident.sym.clone(),
+
+                        ref x => todo!("Unsupported prop name kind: {:?}", x),
+                    };
+
+                    members.insert(key, typ);
+                }
+
+                x => todo!("Handle ClassMember: {:?}", x),
             }
 
         }
