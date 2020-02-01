@@ -126,6 +126,14 @@ struct Session<'a> {
 
 impl<'a> Session<'a> {
 
+    fn get_item_state(&self, key: &JsWord) -> ItemState {
+        self.scope
+            .get(key)
+            .cloned()
+            .or(self.self_id.map(|_| ItemState::Rooted))
+            .expect("Type not in scope")
+    }
+
     fn gen_interface_type(
         &self,
         decl: &TsInterfaceDecl
@@ -394,10 +402,35 @@ impl<'a> Session<'a> {
                 ref type_name,
                 ref type_params,
             }) => {
-                // todo!("{}:{:?}", module_info.path().display(), type_name);
-                // TODO: TsTypeRef
 
-                Ok(Type::Any)
+                // Can assume that all possible types are in scope or is self_id
+
+                let name = match type_name {
+                    TsEntityName::Ident(ref i) => &i.sym,
+
+                    TsEntityName::TsQualifiedName(..) => todo!("TsQualifiedName"),
+                };
+
+                let typ = match self.get_item_state(name) {
+                    ItemState::Rooted => Type::Named {
+                        name: name.clone(),
+                        source: self.path.clone(),
+                    },
+
+                    ItemState::Imported {
+                        source,
+                        src_key,
+                        ..
+                    } => {
+                        Type::Named {
+                            name: src_key,
+                            source: source,
+                        }
+                    }
+
+                };
+
+                Ok(typ)
             },
 
             TsType::TsTypeQuery(_TsTypeQuery) => {
