@@ -5,6 +5,7 @@ mod error;
 mod structures;
 mod type_structs;
 mod init_type_scope;
+mod type_construction;
 mod bind_init;
 mod bind_common;
 mod bind_graph_init;
