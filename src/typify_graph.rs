@@ -5,7 +5,8 @@ use swc_atoms::JsWord;
 use swc_common::Span;
 
 use super::bind_init::{ModuleData, ParsedModuleCache as ModuleCache};
-use super::structures::{Type, CanonPath, FnType, ClassType};
+use super::type_structs::*;
+use super::structures::CanonPath;
 use super::error::*;
 use super::bind_graph_init::{
     ModuleGraph as UTModuleGraph,
