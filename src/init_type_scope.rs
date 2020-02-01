@@ -2,15 +2,8 @@ use std::collections::HashMap;
 
 use swc_ecma_ast::*;
 use swc_atoms::JsWord;
-use swc_common::Span;
 
 use super::bind_init::ModuleData;
-
-use super::bind_graph_init::{
-    Import,
-    Export,
-    ScopeKind,
-};
 
 use super::structures::{ ItemState, Scope, CanonPath };
 use super::error::*;
