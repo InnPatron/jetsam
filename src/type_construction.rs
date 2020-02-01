@@ -16,8 +16,31 @@ pub fn construct_variable_types(
     current_module: &CanonPath,
     type_scope: &Scope<ItemState>,
     decl: &VarDecl
-) -> Result<(), BindGenError> {
-    todo!("Variable type construction");
+) -> Result<HashMap<JsWord, Type>, BindGenError> {
+
+    let session = Session {
+        path: current_module,
+        scope: type_scope,
+        self_id: None,
+    };
+
+    let mut map = HashMap::new();
+    for var_decl in decl.decls.iter() {
+        match var_decl.name {
+            Pat::Ident(ref ident) => {
+                let typ = ident.type_ann
+                    .as_ref()
+                    .map(|ann| session.type_from_ann(ann))
+                    .transpose()?
+                    .unwrap_or(Type::Any);
+                map.insert(ident.sym.clone(), typ);
+            },
+
+            _ => todo!("Handle all variable patterns"),
+        }
+    }
+
+    Ok(map)
 }
 
 ///
