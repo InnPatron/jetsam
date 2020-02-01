@@ -1,3 +1,5 @@
+#[macro_use]
+mod macros;
 mod error;
 // mod bind_gen;
 mod structures;

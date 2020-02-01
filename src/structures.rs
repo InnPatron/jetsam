@@ -6,8 +6,8 @@ use swc_atoms::JsWord;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
-struct Scope<T> {
-    map: HashMap<String, T>,
+pub struct Scope<T> {
+    map: HashMap<JsWord, T>,
 }
 
 impl<T> Scope<T> {
@@ -17,13 +17,24 @@ impl<T> Scope<T> {
         }
     }
 
-    pub fn insert(&mut self, key: String, v: T) {
+    pub fn insert(&mut self, key: JsWord, v: T) {
         self.map.insert(key, v);
     }
 
-    pub fn get(&self, key: &str) -> Option<&T> {
+    pub fn get(&self, key: &JsWord) -> Option<&T> {
         self.map.get(key)
     }
+}
+
+#[derive(Clone)]
+pub enum ItemState {
+    Imported {
+        source: CanonPath,
+        src_key: JsWord,
+        as_key: JsWord,
+    },
+
+    Rooted,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

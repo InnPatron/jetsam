@@ -5,7 +5,7 @@ use swc_atoms::JsWord;
 use swc_common::Span;
 
 use super::bind_init::{ModuleData, ParsedModuleCache as ModuleCache};
-use super::structures::CanonPath;
+use super::structures::{ItemState, CanonPath};
 use super::error::*;
 
 pub fn init(cache: &ModuleCache) -> Result<ModuleGraph, BindGenError> {
@@ -70,17 +70,6 @@ impl ModuleGraph {
     }
 }
 
-#[derive(Clone)]
-enum ItemState {
-    Imported {
-        source: CanonPath,
-        src_key: JsWord,
-        as_key: JsWord,
-    },
-
-    Rooted,
-}
-
 #[derive(Copy, Clone)]
 pub enum ScopeKind {
     Value,
@@ -98,13 +87,6 @@ struct NodeInitSession<'a> {
 
     value_scope: HashMap<JsWord, ItemState>,
     type_scope: HashMap<JsWord, ItemState>,
-}
-
-macro_rules! get_dep_src {
-    ($self: expr, $src_str: expr) => {
-        $self.dependency_map.get(&*$src_str.value).expect("Source path not found in dependency_map")
-    }
-
 }
 
 impl<'a> NodeInitSession<'a> {
