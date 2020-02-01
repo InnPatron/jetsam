@@ -65,6 +65,11 @@ impl<'a> InitSession<'a> {
                 Ok(())
             },
 
+            ModuleDecl::ExportDecl(ExportDecl {
+                ref decl,
+                ..
+            }) => self.process_decl(decl, true),
+
             _ => Ok(()),
         }
     }
@@ -88,6 +93,7 @@ impl<'a> InitSession<'a> {
                     as_key,
                 };
 
+                let import_key = specific.local.sym.clone();
                 self.scope.insert(import_key, item_state);
 
                 Ok(())
