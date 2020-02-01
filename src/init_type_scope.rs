@@ -13,6 +13,7 @@ pub fn init(data: &ModuleData)
     -> Result<Scope<ItemState>, BindGenError> {
 
     let mut init_session = InitSession {
+        path: &data.path,
         dependency_map: &data.dependencies,
         scope: Scope::new(),
     };
@@ -23,6 +24,7 @@ pub fn init(data: &ModuleData)
 }
 
 struct InitSession<'a> {
+    path: &'a CanonPath,
     dependency_map: &'a HashMap<String, CanonPath>,
     scope: Scope<ItemState>,
 }
@@ -92,7 +94,21 @@ impl<'a> InitSession<'a> {
                 Ok(())
             }
 
-            _ => Ok(()),
+            ImportSpecifier::Default(def) => {
+                Err(BindGenError {
+                    module_path: self.path.as_path().to_owned(),
+                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                    span: def.span,
+                })
+            }
+
+            ImportSpecifier::Namespace(namespace) => {
+                Err(BindGenError {
+                    module_path: self.path.as_path().to_owned(),
+                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                    span: namespace.span,
+                })
+            }
         }
     }
 
