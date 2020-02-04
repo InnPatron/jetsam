@@ -6,6 +6,8 @@ use swc_atoms::JsWord;
 use swc_common::Span;
 use swc_ecma_ast::Str;
 
+use super::type_structs::Type;
+
 pub struct Scope<T> {
     map: HashMap<JsWord, T>,
 }
@@ -24,6 +26,17 @@ impl<T> Scope<T> {
     pub fn get(&self, key: &JsWord) -> Option<&T> {
         self.map.get(key)
     }
+}
+
+#[derive(Clone)]
+pub enum ItemStateT {
+    Imported {
+        source: CanonPath,
+        src_key: JsWord,
+        as_key: JsWord,
+    },
+
+    Rooted(Type),
 }
 
 #[derive(Clone)]
