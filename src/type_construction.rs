@@ -16,7 +16,7 @@ pub fn construct_variable_types(
     current_module: &CanonPath,
     type_scope: &Scope<ItemState>,
     decl: &VarDecl
-) -> Result<HashMap<JsWord, Type>, BindGenError> {
+) -> Result<Vec<(JsWord, Type)>, BindGenError> {
 
     let session = Session {
         path: current_module,
@@ -24,7 +24,7 @@ pub fn construct_variable_types(
         self_id: None,
     };
 
-    let mut map = HashMap::new();
+    let mut map = Vec::new();
     for var_decl in decl.decls.iter() {
         match var_decl.name {
             Pat::Ident(ref ident) => {
@@ -33,7 +33,7 @@ pub fn construct_variable_types(
                     .map(|ann| session.type_from_ann(ann))
                     .transpose()?
                     .unwrap_or(Type::Any);
-                map.insert(ident.sym.clone(), typ);
+                map.push((ident.sym.clone(), typ));
             },
 
             _ => todo!("Handle all variable patterns"),
@@ -456,7 +456,7 @@ impl<'a> Session<'a> {
                 Ok(typ)
             },
 
-            TsType::TsTypeQuery(_TsTypeQuery) => {
+            TsType::TsTypeQuery(..) => {
                 todo!("ts type query");
             },
 
@@ -525,15 +525,15 @@ impl<'a> Session<'a> {
                 todo!("parenthesized type");
             },
 
-            TsType::TsTypeOperator(_TsTypeOperator) => {
+            TsType::TsTypeOperator(..) => {
                 todo!("type operators not supported");
             },
 
-            TsType::TsIndexedAccessType(_TsIndexedAccessType) => {
+            TsType::TsIndexedAccessType(..) => {
                 todo!("ts indexed access type not supported");
             },
 
-            TsType::TsMappedType(_TsMappedType) => {
+            TsType::TsMappedType(..) => {
                 todo!("ts mapped type not supported");
             },
 
@@ -544,11 +544,11 @@ impl<'a> Session<'a> {
                 todo!("ts lit type");
             },
 
-            TsType::TsTypePredicate(_TsTypePredicate) => {
+            TsType::TsTypePredicate(..) => {
                 todo!("ts type predicates not supported?");
             },
 
-            TsType::TsImportType(_TsImportType) => {
+            TsType::TsImportType(..) => {
                 todo!("What is TsImportType?");
             },
         }
