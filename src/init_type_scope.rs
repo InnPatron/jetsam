@@ -19,8 +19,10 @@ pub fn init(data: &ModuleData)
     };
 
     for module_item in data.module_ast.body.iter() {
+        init_session.process_module_item(module_item)?;
     }
-    todo!();
+
+    Ok(init_session.scope)
 }
 
 struct InitSession<'a> {
