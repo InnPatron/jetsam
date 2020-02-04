@@ -154,7 +154,7 @@ impl<'a> Session<'a> {
             .get(key)
             .cloned()
             .or(self.self_id.map(|_| ItemState::Rooted))
-            .expect("Type not in scope")
+            .expect(&format!("[{}] Type '{}' not in scope", self.path.as_path().display(), key))
     }
 
     fn gen_interface_type(
