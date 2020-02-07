@@ -24,7 +24,17 @@ pub fn reduce(cache: &ModuleCache, graph: ModuleGraph) -> Result<ModuleGraph, Bi
 
     };
 
+    session.resolve_imports()?;
+
     todo!();
+}
+
+type Resolution = Option<(CanonPath, JsWord)>;
+
+#[derive(Clone, Copy)]
+enum ResolutionKind {
+    Value,
+    Type,
 }
 
 struct ResolutionSession<'a> {
@@ -37,20 +47,126 @@ struct ResolutionSession<'a> {
 
 impl<'a> ResolutionSession<'a> {
 
-    fn resolve_imports(&mut self) -> Result<(), BindGenError> {
-        for (canon_path, imports) in self.original_imports.iter() {
-            let mut imports = Vec::new();
-
-            for import in imports.iter() {
-                imports.push(todo!());
-            }
-
-            self.new_imports.push((canon_path, imports));
-        }
-        todo!();
+    fn get_node(&self, path: &CanonPath) -> &ModuleNode {
+        self.nodes
+            .get(path)
+            .expect(&format!("Missing module for {}", path.as_path().display()))
     }
 
-    fn resolve_type(&self) -> Option<(CanonPath, JsWord)> {
+    fn resolve_imports(&mut self) -> Result<(), BindGenError> {
+        for (canon_path, imports) in self.original_imports.iter() {
+            let mut new_imports: Vec<Import> = Vec::new();
 
+            for import in imports.iter() {
+                match import {
+
+                    Import::NamedType {
+                        ref source,
+                        ref src_key,
+                    } => {
+                        let resolution =
+                            self.traverse(source, src_key, ResolutionKind::Type);
+
+                        match resolution {
+                            Some((path, key)) => {
+                                new_imports.push(Import::NamedType {
+                                    source: path,
+                                    src_key: key
+                                });
+
+                            }
+
+                            None => todo!("Error: type import not resolved"),
+                        }
+
+                    }
+
+                    Import::NamedValue {
+                        ref source,
+                        ref src_key,
+                    } => {
+                        let resolution =
+                            self.traverse(source, src_key, ResolutionKind::Value);
+
+                        match resolution {
+                            Some((path, key)) => {
+                                new_imports.push(Import::NamedValue {
+                                    source: path,
+                                    src_key: key
+                                });
+
+                            }
+
+                            None => todo!("Error: value import not resolved"),
+                        }
+                    }
+
+                    Import::Named {
+                        ref source,
+                        ref src_key,
+                    } => {
+
+                        let type_resolution =
+                            self.traverse(source, src_key, ResolutionKind::Type);
+
+                        let value_resolution =
+                            self.traverse(source, src_key, ResolutionKind::Value);
+
+                        if type_resolution.is_none() && value_resolution.is_none() {
+                            todo!("Error: import not resolved");
+                        }
+
+                        if let Some((path, key)) = type_resolution {
+                                new_imports.push(Import::NamedType {
+                                    source: path,
+                                    src_key: key
+                                });
+                        }
+
+                        if let Some((path, key)) = value_resolution {
+                                new_imports.push(Import::NamedValue {
+                                    source: path,
+                                    src_key: key
+                                });
+                        }
+
+                    }
+                }
+            }
+
+            self.new_imports.push((canon_path, new_imports));
+        }
+
+        Ok(())
+    }
+
+    fn traverse(&self,
+        start: &CanonPath,
+        source_key: &JsWord,
+        kind: ResolutionKind,
+    ) -> Resolution {
+
+        let mut worklist: Vec<(&CanonPath, &JsWord)> = vec![(start, source_key)];
+
+        while worklist.is_empty() == false {
+            let (next_path, next_key) = worklist.pop().unwrap();
+            let node = self.get_node(next_path);
+            match kind {
+                ResolutionKind::Type => {
+                    if node.is_rooted_type(next_key) {
+                        return Some((next_path.clone(), next_key.clone()));
+                    }
+                },
+
+                ResolutionKind::Value => {
+                    if node.is_rooted_value(next_key) {
+                        return Some((next_path.clone(), next_key.clone()));
+                    }
+                }
+            }
+        }
+
+
+        None
     }
 }
