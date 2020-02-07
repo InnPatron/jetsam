@@ -14,6 +14,11 @@ use super::error::*;
 use super::structures::CanonPath;
 
 /// Modify graph such that import/export edges point directly towards the rooted item
+///
+/// POST-CONDITION:
+///   All Import::Named edges transformed into Import::NamedType and/or Import::NamedValue
+///   All Export::Named edges transformed into Export::NamedType and/or Export::NamedValue
+///   All new edges point directly to a rooted value
 pub fn reduce(cache: &ModuleCache, graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
     let mut session = ResolutionSession {
         nodes: &graph.nodes,
@@ -27,7 +32,24 @@ pub fn reduce(cache: &ModuleCache, graph: ModuleGraph) -> Result<ModuleGraph, Bi
     session.resolve_imports()?;
     session.resolve_exports()?;
 
-    todo!();
+    let export_edges = session.new_exports
+        .into_iter()
+        .map(|(p, edges)| (p.clone(), edges))
+        .collect();
+
+    let import_edges = session.new_imports
+        .into_iter()
+        .map(|(p, edges)| (p.clone(), edges))
+        .collect();
+
+    // TODO: Remove Export::All edges
+    //    and unify strongly connected components export interfaces
+
+    Ok(ModuleGraph {
+        nodes: graph.nodes,
+        export_edges,
+        import_edges,
+    })
 }
 
 type Resolution = Option<(CanonPath, JsWord)>;
