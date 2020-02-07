@@ -57,10 +57,12 @@ pub enum Export {
     NamedType {
         source: CanonPath,
         src_key: JsWord,
+        export_key: JsWord,
     },
     NamedValue {
         source: CanonPath,
         src_key: JsWord,
+        export_key: JsWord,
     },
     Named {
         source: CanonPath,
