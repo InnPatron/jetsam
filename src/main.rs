@@ -9,6 +9,7 @@ mod type_construction;
 mod bind_init;
 mod bind_common;
 mod bind_graph_init;
+mod graph_reduce;
 mod typify_graph;
 // mod bind_graph;
 // mod emit;
