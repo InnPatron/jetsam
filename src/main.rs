@@ -91,7 +91,7 @@ Some(cm.clone()));
             }
         };
 
-        let graph = match graph_reduce::reduce(&cache, graph) {
+        let graph = match graph_reduce::reduce(graph) {
             Ok(g) => g,
 
             Err(e) => {

@@ -19,7 +19,7 @@ use super::structures::CanonPath;
 ///   All Import::Named edges transformed into Import::NamedType and/or Import::NamedValue
 ///   All Export::Named edges transformed into Export::NamedType and/or Export::NamedValue
 ///   All new edges point directly to a rooted value
-pub fn reduce(cache: &ModuleCache, graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
+pub fn reduce(graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
     let mut session = ResolutionSession {
         nodes: &graph.nodes,
         original_exports: &graph.export_edges,
