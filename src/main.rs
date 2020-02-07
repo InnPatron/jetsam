@@ -91,6 +91,15 @@ Some(cm.clone()));
             }
         };
 
+        let graph = match graph_reduce::reduce(&cache, graph) {
+            Ok(g) => g,
+
+            Err(e) => {
+                eprintln!("graph reduction error: {:?}", e);
+                std::process::exit(1);
+            }
+        };
+
         let typed_graph = match typify_graph::typify(&cache, graph) {
             Ok(g) => g,
 
