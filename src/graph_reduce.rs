@@ -2,13 +2,11 @@ use std::collections::{HashSet, HashMap};
 
 use swc_atoms::JsWord;
 
-use super::bind_init::{ModuleData, ParsedModuleCache as ModuleCache};
 use super::bind_graph_init::{
     ModuleGraph,
     ModuleNode,
     Import,
     Export,
-    ScopeKind,
 };
 use super::error::*;
 use super::structures::CanonPath;
