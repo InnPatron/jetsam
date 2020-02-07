@@ -28,10 +28,24 @@ pub struct ModuleNode {
     pub rooted_export_values: HashSet<JsWord>,
 }
 
-pub enum Import {
-    // Unused until TS 3.8
-    NamedType {
+impl ModuleNode {
+    pub fn is_rooted_type(&self, key: &JsWord) -> bool {
+        self.rooted_export_types.contains(key)
+    }
 
+    pub fn is_rooted_value(&self, key: &JsWord) -> bool {
+        self.rooted_export_values.contains(key)
+    }
+}
+
+pub enum Import {
+    NamedType {
+        source: CanonPath,
+        src_key: JsWord,
+    },
+    NamedValue {
+        source: CanonPath,
+        src_key: JsWord,
     },
     Named {
         source: CanonPath,
@@ -40,9 +54,13 @@ pub enum Import {
 }
 
 pub enum Export {
-    // Unused until TS 3.8
     NamedType {
-
+        source: CanonPath,
+        src_key: JsWord,
+    },
+    NamedValue {
+        source: CanonPath,
+        src_key: JsWord,
     },
     Named {
         source: CanonPath,
