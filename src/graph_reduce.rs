@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 
 use swc_atoms::JsWord;
 
@@ -47,7 +47,7 @@ struct ResolutionSession<'a> {
 
 impl<'a> ResolutionSession<'a> {
 
-    fn get_node(&self, path: &CanonPath) -> &ModuleNode {
+    fn get_node(&self, path: &CanonPath) -> &'a ModuleNode {
         self.nodes
             .get(path)
             .expect(&format!("Missing module for {}", path.as_path().display()))
@@ -140,16 +140,86 @@ impl<'a> ResolutionSession<'a> {
         Ok(())
     }
 
+    ///
+    /// Scans re-export edges and adds to the worklist if matching export keys
+    ///
+    fn worklist_exports(&self,
+        worklist: &mut Vec<(&'a CanonPath, &'a JsWord)>,
+        export_source: &'a CanonPath,
+        key: &'a JsWord,
+        kind: ResolutionKind
+    ) {
+        let exports = self.original_exports
+            .get(export_source)
+            .expect(&format!("Missing original exports from {}", export_source.as_path().display()));
+
+        for export in exports.iter() {
+            match export {
+                Export::NamedType {
+                    ref source,
+                    ref src_key,
+                    ref export_key,
+                } => {
+
+                    if let ResolutionKind::Type = kind {
+                        if export_key == key {
+                            worklist.push((source, src_key));
+                        }
+                    }
+
+                },
+
+                Export::NamedValue {
+                    ref source,
+                    ref src_key,
+                    ref export_key,
+                } => {
+
+                    if let ResolutionKind::Value = kind {
+                        if export_key == key {
+                            worklist.push((source, src_key));
+                        }
+                    }
+
+                }
+
+                Export::Named {
+                    ref source,
+                    ref src_key,
+                    ref export_key,
+                } => {
+                    if export_key == key {
+                        worklist.push((source, src_key));
+                    }
+                }
+
+                Export::All {
+                    ref source,
+                } => {
+                    worklist.push((source, key));
+                }
+            }
+        }
+    }
+
     fn traverse(&self,
-        start: &CanonPath,
-        source_key: &JsWord,
+        start: &'a CanonPath,
+        source_key: &'a JsWord,
         kind: ResolutionKind,
     ) -> Resolution {
 
+        let mut visited_set: HashSet<&CanonPath> = HashSet::new();
         let mut worklist: Vec<(&CanonPath, &JsWord)> = vec![(start, source_key)];
 
         while worklist.is_empty() == false {
             let (next_path, next_key) = worklist.pop().unwrap();
+
+            if visited_set.contains(next_path) {
+                continue;
+            }
+
+            visited_set.insert(next_path);
+
             let node = self.get_node(next_path);
             match kind {
                 ResolutionKind::Type => {
@@ -164,8 +234,9 @@ impl<'a> ResolutionSession<'a> {
                     }
                 }
             }
-        }
 
+            self.worklist_exports(&mut worklist, next_path, next_key, kind);
+        }
 
         None
     }
