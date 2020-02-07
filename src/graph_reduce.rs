@@ -13,7 +13,7 @@ use super::bind_graph_init::{
 use super::error::*;
 use super::structures::CanonPath;
 
-/// Modify graph such that import/export edges point directly towards the rooted value
+/// Modify graph such that import/export edges point directly towards the rooted item
 pub fn reduce(cache: &ModuleCache, graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
     let mut session = ResolutionSession {
         nodes: &graph.nodes,
@@ -25,6 +25,7 @@ pub fn reduce(cache: &ModuleCache, graph: ModuleGraph) -> Result<ModuleGraph, Bi
     };
 
     session.resolve_imports()?;
+    session.resolve_exports()?;
 
     todo!();
 }
@@ -51,6 +52,110 @@ impl<'a> ResolutionSession<'a> {
         self.nodes
             .get(path)
             .expect(&format!("Missing module for {}", path.as_path().display()))
+    }
+
+    /// Remove extraneous export edges and connects re-exports directly to values
+    /// Does NOT remove Export::All edges
+    fn resolve_exports(&mut self) -> Result<(), BindGenError> {
+        for (canon_path, exports) in self.original_exports.iter() {
+            let mut new_exports: Vec<Export> = Vec::new();
+
+            for export in exports.iter() {
+                match export {
+
+                    Export::NamedType {
+                        ref source,
+                        ref src_key,
+                        ref export_key,
+                    } => {
+                        let resolution =
+                            self.traverse(source, src_key, ResolutionKind::Type);
+
+                        match resolution {
+                            Some((path, key)) => {
+                                new_exports.push(Export::NamedType {
+                                    source: path,
+                                    src_key: key,
+                                    export_key: export_key.clone(),
+                                });
+
+                            }
+
+                            None => todo!("Error: type import not resolved"),
+                        }
+
+                    }
+
+                    Export::NamedValue {
+                        ref source,
+                        ref src_key,
+                        ref export_key,
+                    } => {
+                        let resolution =
+                            self.traverse(source, src_key, ResolutionKind::Value);
+
+                        match resolution {
+                            Some((path, key)) => {
+                                new_exports.push(Export::NamedValue {
+                                    source: path,
+                                    src_key: key,
+                                    export_key: export_key.clone(),
+                                });
+
+                            }
+
+                            None => todo!("Error: value import not resolved"),
+                        }
+                    }
+
+                    Export::Named {
+                        ref source,
+                        ref src_key,
+                        ref export_key,
+                    } => {
+
+                        let type_resolution =
+                            self.traverse(source, src_key, ResolutionKind::Type);
+
+                        let value_resolution =
+                            self.traverse(source, src_key, ResolutionKind::Value);
+
+                        if type_resolution.is_none() && value_resolution.is_none() {
+                            todo!("Error: import not resolved");
+                        }
+
+                        if let Some((path, key)) = type_resolution {
+                                new_exports.push(Export::NamedType {
+                                    source: path,
+                                    src_key: key,
+                                    export_key: export_key.clone(),
+                                });
+                        }
+
+                        if let Some((path, key)) = value_resolution {
+                                new_exports.push(Export::NamedValue {
+                                    source: path,
+                                    src_key: key,
+                                    export_key: export_key.clone(),
+                                });
+                        }
+
+                    }
+
+                    Export::All {
+                        ref source,
+                    } => {
+                        new_exports.push(Export::All {
+                            source: source.clone(),
+                        });
+                    }
+                }
+            }
+
+            self.new_exports.push((canon_path, new_exports));
+        }
+
+        Ok(())
     }
 
     fn resolve_imports(&mut self) -> Result<(), BindGenError> {
