@@ -366,3 +366,144 @@ impl<'a> ResolutionSession<'a> {
         None
     }
 }
+
+/// Tarjan's strongly connected components algorithm
+/// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm#Complexity
+struct SccSession<'a> {
+
+    results: Vec<HashSet<&'a CanonPath>>,
+
+    current: Option<&'a CanonPath>,
+    work_stack: Vec<&'a CanonPath>,
+    curr_index: usize,
+
+    vertex_indices: HashMap<&'a CanonPath, usize>,
+    vertex_low_links: HashMap<&'a CanonPath, usize>,
+    vertex_on_stack: HashSet<&'a CanonPath>,
+
+    nodes: &'a HashMap<CanonPath, ModuleNode>,
+    original_exports: &'a HashMap<CanonPath, Vec<Export>>,
+}
+
+impl<'a> SccSession<'a> {
+
+    fn init(
+        nodes: &'a HashMap<CanonPath, ModuleNode>,
+        original_exports: &'a HashMap<CanonPath, Vec<Export>>,
+    ) -> Self {
+        let session = SccSession {
+
+            results: Vec::new(),
+
+            current: None,
+            work_stack: Vec::new(),
+            curr_index: 0,
+
+            vertex_indices: HashMap::new(),
+            vertex_low_links: HashMap::new(),
+            vertex_on_stack: HashSet::new(),
+
+            nodes,
+            original_exports,
+        };
+
+        session
+    }
+
+    fn export_alls_scc(mut self) -> Vec<HashSet<&'a CanonPath>> {
+
+        for (node_path, _) in self.nodes.iter() {
+            if self.vertex_indices.contains_key(node_path) == false {
+                self.current = Some(node_path);
+                self.scc();
+            }
+        }
+
+        self.results
+    }
+
+    fn scc(&mut self) {
+        let current_path = self.current.unwrap();
+        let edges = self.original_exports
+            .get(current_path)
+            .map(|edges| {
+                edges.iter()
+                    .filter(|edge| match edge {
+                        Export::All { .. } => true,
+
+                        _ => false,
+                    })
+                    .map(|export_all| match export_all {
+                        Export::All { ref source } => source,
+
+                        _ => unreachable!("Should be filtered"),
+
+                    })
+            }).unwrap();
+
+        self.vertex_indices.insert(current_path, self.curr_index);
+        self.vertex_low_links.insert(current_path, self.curr_index);
+
+        self.curr_index += 1;
+
+        self.work_stack.push(current_path);
+        self.vertex_on_stack.insert(current_path);
+
+        //  w
+        for to in edges {
+
+            if self.vertex_indices.contains_key(to) == false {
+
+                self.current = Some(to);
+                let low_link = {
+                    let v_ll = self.vertex_low_links.get(current_path)
+                        .unwrap();
+
+                    let w_ll = self.vertex_low_links.get(to)
+                        .unwrap();
+
+                    std::cmp::min(v_ll, w_ll)
+                };
+                self.vertex_low_links.insert(current_path, *low_link);
+
+            } else if self.vertex_on_stack.contains(to) {
+
+                let low_link = {
+                    let v_ll = self.vertex_low_links.get(current_path)
+                        .unwrap();
+
+                    let w_index = self.vertex_indices.get(to)
+                        .unwrap();
+
+                    std::cmp::min(v_ll, w_index)
+                };
+                self.vertex_low_links.insert(current_path, *low_link);
+
+            }
+        }
+
+        let v_ll = self.vertex_low_links.get(current_path)
+            .unwrap();
+
+        let v_index = self.vertex_indices.get(current_path)
+            .unwrap();
+
+        if v_ll == v_index {
+            let mut scc: HashSet<&CanonPath> = HashSet::new();
+
+            let work_stack = {
+                let mut tmp = Vec::new();
+                std::mem::swap(&mut tmp, &mut self.work_stack);
+                tmp
+            };
+
+            for path in work_stack.into_iter() {
+                if path != current_path {
+                    self.vertex_on_stack.remove(path);
+                    scc.insert(path);
+                }
+            }
+            self.results.push(scc);
+        }
+    }
+}
