@@ -367,6 +367,108 @@ impl<'a> ResolutionSession<'a> {
     }
 }
 
+struct ExportSet {
+    types: HashSet<JsWord>,
+    values: HashSet<JsWord>,
+    nebulous: HashSet<JsWord>,
+}
+
+impl ExportSet {
+    fn new() -> Self {
+        ExportSet {
+            types: HashSet::new(),
+            values: HashSet::new(),
+            nebulous: HashSet::new(),
+        }
+    }
+
+    fn union_add(&mut self, other: &ExportSet) {
+        for t in other.types.iter() {
+            self.types.insert(t.clone());
+        }
+
+        for v in other.values.iter() {
+            self.values.insert(v.clone());
+        }
+
+        for n in other.nebulous.iter() {
+            self.nebulous.insert(n.clone());
+        }
+    }
+
+    fn difference(&self, other: &ExportSet) -> ExportSet {
+        ExportSet {
+            types: self.types.difference(&other.types).cloned().collect(),
+            values: self.values.difference(&other.values).cloned().collect(),
+            nebulous: self.nebulous.difference(&other.nebulous).cloned().collect(),
+        }
+    }
+}
+
+struct ExpansionSession<'a> {
+    node_sets: HashMap<&'a CanonPath, ExportSet>,
+    nodes: &'a HashMap<CanonPath, ModuleNode>,
+    original_exports: &'a HashMap<CanonPath, Vec<Export>>,
+}
+
+impl<'a> ExpansionSession<'a> {
+    fn node_direct_export_set(&self, path: &CanonPath) -> ExportSet {
+        let mut set = ExportSet::new();
+
+        let node = self.nodes.get(path).unwrap();
+        for v in node.rooted_export_values.iter() {
+            set.types.insert(v.clone());
+        }
+
+        for t in node.rooted_export_types.iter() {
+            set.values.insert(t.clone());
+        }
+
+        let edges = self.original_exports.get(path).unwrap();
+
+        for edge in edges.iter() {
+            match edge {
+                Export::NamedType {
+                    ref export_key,
+                    ..
+                } => {
+                    set.types.insert(export_key.clone());
+                }
+
+                Export::NamedValue {
+                    ref export_key,
+                    ..
+                } => {
+                    set.values.insert(export_key.clone());
+                }
+
+                Export::Named {
+                    ref export_key,
+                    ..
+                } => {
+                    set.nebulous.insert(export_key.clone());
+                }
+
+                Export::All { .. } => (),
+            }
+        }
+
+        set
+    }
+
+    fn scc_direct_export_set(&mut self, scc: HashSet<&'a CanonPath>) -> ExportSet {
+        let mut scc_set = ExportSet::new();
+
+        for node_path in scc.iter() {
+            let node_set = self.node_direct_export_set(node_path);
+            scc_set.union_add(&node_set);
+            self.node_sets.insert(node_path, node_set);
+        }
+
+        scc_set
+    }
+}
+
 /// Tarjan's strongly connected components algorithm
 /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm#Complexity
 struct SccSession<'a> {
