@@ -455,6 +455,7 @@ impl<'a> SccSession<'a> {
             if self.vertex_indices.contains_key(to) == false {
 
                 self.current = Some(to);
+                self.scc();
                 let low_link = {
                     let v_ll = self.vertex_low_links.get(current_path)
                         .unwrap();
