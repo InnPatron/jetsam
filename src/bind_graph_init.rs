@@ -75,6 +75,17 @@ pub enum Export {
     },
 }
 
+impl Export {
+    pub fn export_source(&self) -> &CanonPath {
+        match self {
+            Export::NamedType { ref source, .. } => source,
+            Export::NamedValue { ref source, .. } => source,
+            Export::Named { ref source, .. } => source,
+            Export::All { ref source, .. } => source,
+        }
+    }
+}
+
 /// ORDER OF EXPORTS MATTERS
 /// ORDER OF IMPORTS MATTERS
 ///
