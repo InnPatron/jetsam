@@ -19,7 +19,28 @@ use super::structures::CanonPath;
 ///   All Import::Named edges transformed into Import::NamedType and/or Import::NamedValue
 ///   All Export::Named edges transformed into Export::NamedType and/or Export::NamedValue
 ///   All new edges point directly to a rooted value
-pub fn reduce(graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
+pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
+
+
+    let scc_session = SccSession::init(&graph.nodes, &graph.export_edges);
+    let sccs = scc_session.export_alls_scc();
+
+    let expansion_session = ExpansionSession {
+        node_sets: HashMap::new(),
+        nodes: &graph.nodes,
+        original_exports: &graph.export_edges,
+    };
+
+    // Expand Export::All edges
+    // Does NOT remove them b/c may be needed during resolution
+    let expanded: HashMap<CanonPath, Vec<Export>> =
+        expansion_session.expand_exports(sccs);
+
+    // Add expanded edges to graph
+    for (path, mut expanded) in expanded.into_iter() {
+        graph.export_edges.get_mut(&path).unwrap().append(&mut expanded);
+    }
+
     let mut session = ResolutionSession {
         nodes: &graph.nodes,
         original_exports: &graph.export_edges,
@@ -28,6 +49,7 @@ pub fn reduce(graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
         new_imports: Vec::new(),
 
     };
+
 
     session.resolve_imports()?;
     session.resolve_exports()?;
@@ -458,7 +480,7 @@ impl<'a> ExpansionSession<'a> {
         set
     }
 
-    fn scc_direct_export_set(&mut self, scc: HashSet<&'a CanonPath>) -> ExportSet {
+    fn scc_direct_export_set(&mut self, scc: &IndexSet<&'a CanonPath>) -> ExportSet {
         let mut scc_set = ExportSet::new();
 
         for node_path in scc.iter() {
@@ -468,6 +490,57 @@ impl<'a> ExpansionSession<'a> {
         }
 
         scc_set
+    }
+
+    fn expand_exports(mut self, sccs: Vec<IndexSet<&'a CanonPath>>)
+        -> HashMap<CanonPath, Vec<Export>> {
+
+        let mut expanded_exports = HashMap::new();
+
+        // For each SCC, expand the Export::All edges with respect to SCC export set
+        for scc in sccs.into_iter() {
+            let scc_set = self.scc_direct_export_set(&scc);
+
+            let scc_root: CanonPath
+                = (*scc.iter().next().unwrap()).clone();
+
+            // For each node, export missing types, values, or nebulous edges
+            for node_path in scc.into_iter() {
+                let mut expanded = Vec::new();
+
+                let node_set = self.node_sets.get(&node_path).unwrap();
+                let difference = scc_set.difference(node_set);
+
+                for export_key in difference.types.into_iter() {
+                    expanded.push(Export::NamedType {
+                        source: scc_root.clone(),
+                        src_key: export_key.clone(),
+                        export_key,
+                    });
+                }
+
+                for export_key in difference.values.into_iter() {
+                    expanded.push(Export::NamedValue {
+                        source: scc_root.clone(),
+                        src_key: export_key.clone(),
+                        export_key,
+                    });
+                }
+
+                for export_key in difference.nebulous.into_iter() {
+                    expanded.push(Export::Named {
+                        source: scc_root.clone(),
+                        src_key: export_key.clone(),
+                        export_key,
+                    });
+                }
+
+                // Return cloned CanonPath's necessary to mutate original graph
+                expanded_exports.insert(node_path.clone(), expanded);
+            }
+        }
+
+        expanded_exports
     }
 }
 
