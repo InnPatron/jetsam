@@ -57,6 +57,11 @@ impl CanonPath {
     pub fn as_path(&self) -> &std::path::Path {
         &self.0
     }
+
+    #[cfg(test)]
+    pub fn mock(b: PathBuf) -> Self {
+        self(b)
+    }
 }
 
 impl From<CanonPath> for PathBuf {
