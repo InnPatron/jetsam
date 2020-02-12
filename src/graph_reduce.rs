@@ -125,7 +125,8 @@ impl<'a> ResolutionSession<'a> {
 
                             }
 
-                            None => todo!("Error: type import not resolved"),
+                            None => todo!("Error: type import not resolved [{}]:{} (as {})",
+                                source.as_path().display(), src_key, export_key),
                         }
 
                     }
@@ -148,7 +149,8 @@ impl<'a> ResolutionSession<'a> {
 
                             }
 
-                            None => todo!("Error: value import not resolved"),
+                            None => todo!("Error: value import not resolved [{}]:{} (as {})",
+                                source.as_path().display(), src_key, export_key),
                         }
                     }
 
@@ -165,7 +167,8 @@ impl<'a> ResolutionSession<'a> {
                             self.traverse(source, src_key, ResolutionKind::Value);
 
                         if type_resolution.is_none() && value_resolution.is_none() {
-                            todo!("Error: import not resolved");
+                            todo!("Error: import not resolved [{}]:{} (as {})",
+                                source.as_path().display(), src_key, export_key);
                         }
 
                         if let Some((path, key)) = type_resolution {
