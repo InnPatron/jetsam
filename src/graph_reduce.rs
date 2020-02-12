@@ -681,6 +681,7 @@ impl<'a> SccSession<'a> {
                     scc.insert(path);
                 }
             }
+            scc.insert(current_path);
             self.results.push(scc);
         }
     }
