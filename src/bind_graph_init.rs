@@ -53,6 +53,7 @@ pub enum Import {
     },
 }
 
+#[derive(Debug)]
 pub enum Export {
     NamedType {
         source: CanonPath,
