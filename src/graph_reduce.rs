@@ -1,5 +1,7 @@
 use std::collections::{HashSet, HashMap};
 
+use indexmap::IndexSet;
+
 use swc_atoms::JsWord;
 
 use super::bind_graph_init::{
@@ -473,7 +475,7 @@ impl<'a> ExpansionSession<'a> {
 /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm#Complexity
 struct SccSession<'a> {
 
-    results: Vec<HashSet<&'a CanonPath>>,
+    results: Vec<IndexSet<&'a CanonPath>>,
 
     current: Option<&'a CanonPath>,
     work_stack: Vec<&'a CanonPath>,
@@ -512,7 +514,7 @@ impl<'a> SccSession<'a> {
         session
     }
 
-    fn export_alls_scc(mut self) -> Vec<HashSet<&'a CanonPath>> {
+    fn export_alls_scc(mut self) -> Vec<IndexSet<&'a CanonPath>> {
 
         for (node_path, _) in self.nodes.iter() {
             if self.vertex_indices.contains_key(node_path) == false {
@@ -592,7 +594,7 @@ impl<'a> SccSession<'a> {
             .unwrap();
 
         if v_ll == v_index {
-            let mut scc: HashSet<&CanonPath> = HashSet::new();
+            let mut scc: IndexSet<&CanonPath> = IndexSet::new();
 
             let work_stack = {
                 let mut tmp = Vec::new();
