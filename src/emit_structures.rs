@@ -142,7 +142,7 @@ impl JsonOutput {
 
             Type::Alias { .. } => todo!("Aliases are not in the datatypes section"),
 
-            Type::Union => todo!("Union types are not in the datatypes section"),
+            Type::Union => opaque_type!(format!("union{}", self.anon_inc())),
 
             Type::Opaque {
                 ref name,
