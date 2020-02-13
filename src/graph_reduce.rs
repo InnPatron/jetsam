@@ -23,18 +23,24 @@ pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
 
 
     let scc_session = SccSession::init(&graph.nodes, &graph.export_edges);
-    let sccs = scc_session.export_alls_scc();
+    let (module_scc_map, scc_map) = scc_session.get_sccs();
 
     let expansion_session = ExpansionSession {
-        node_sets: HashMap::new(),
         nodes: &graph.nodes,
         original_exports: &graph.export_edges,
+        scc_map,
+        module_scc_map,
     };
 
     // Expand Export::All edges
     // Does NOT remove them b/c may be needed during resolution
     let expanded: HashMap<CanonPath, Vec<Export>> =
-        expansion_session.expand_exports(sccs);
+        expansion_session.expand_exports();
+
+    //use std::convert::TryFrom;
+    //dbg!(
+    //    expanded.get(
+    //    &CanonPath::try_from(std::path::PathBuf::from("/home/q/Documents/three.js/src/materials/Materials.d.ts")).unwrap()));
 
     // Add expanded edges to graph
     for (path, mut expanded) in expanded.into_iter() {
@@ -394,6 +400,7 @@ impl<'a> ResolutionSession<'a> {
     }
 }
 
+#[derive(Clone)]
 struct ExportSet {
     types: HashSet<JsWord>,
     values: HashSet<JsWord>,
@@ -433,9 +440,10 @@ impl ExportSet {
 }
 
 struct ExpansionSession<'a> {
-    node_sets: HashMap<&'a CanonPath, ExportSet>,
     nodes: &'a HashMap<CanonPath, ModuleNode>,
     original_exports: &'a HashMap<CanonPath, Vec<Export>>,
+    scc_map: HashMap<SccId, Scc<'a>>,
+    module_scc_map: HashMap<&'a CanonPath, SccId>,
 }
 
 impl<'a> ExpansionSession<'a> {
@@ -483,35 +491,79 @@ impl<'a> ExpansionSession<'a> {
         set
     }
 
-    fn scc_direct_export_set(&mut self, scc: &IndexSet<&'a CanonPath>) -> ExportSet {
+    fn scc_direct_export_set(&self,
+        scc: &Scc<'a>,
+        node_sets: &mut HashMap<&'a CanonPath, ExportSet>,
+    ) -> ExportSet {
         let mut scc_set = ExportSet::new();
 
-        for node_path in scc.iter() {
+        for node_path in scc.set.iter() {
             let node_set = self.node_direct_export_set(node_path);
             scc_set.union_add(&node_set);
-            self.node_sets.insert(node_path, node_set);
+            node_sets.insert(node_path, node_set);
         }
 
         scc_set
     }
 
-    fn expand_exports(mut self, sccs: Vec<IndexSet<&'a CanonPath>>)
-        -> HashMap<CanonPath, Vec<Export>> {
+    fn scc_export_set(&self,
+        scc: &Scc<'a>,
+        scc_sets: &mut HashMap<SccId, ExportSet>,
+        node_sets: &mut HashMap<&'a CanonPath, ExportSet>
+    ) -> SccId {
+        match scc_sets.get(&scc.id) {
+            Some(..) => scc.id,
+
+            None => {
+                let current_id = scc.id;
+                let mut scc_export_set = self.scc_direct_export_set(scc, node_sets);
+
+                for scc_out_edge in scc.outgoing_edges.iter() {
+                    if scc.set.contains(scc_out_edge) == false {
+                        //dbg!(scc_out_edge);
+                        //dbg!(&self.module_scc_map);
+                        let dep_scc_id = self.module_scc_map.get(scc_out_edge).unwrap();
+
+                        if *dep_scc_id == current_id {
+                            continue;
+                        }
+
+                        let dep_scc: &Scc = self.scc_map.get(dep_scc_id).unwrap();
+                        let dep_export_set = {
+                            self.scc_export_set(dep_scc, scc_sets, node_sets);
+                            scc_sets.get(dep_scc_id).unwrap()
+                        };
+
+                        scc_export_set.union_add(dep_export_set);
+                    }
+                }
+
+                scc_sets.insert(current_id, scc_export_set);
+
+                current_id
+            }
+        }
+    }
+
+    fn expand_exports(mut self) -> HashMap<CanonPath, Vec<Export>> {
 
         let mut expanded_exports = HashMap::new();
+        let mut scc_sets = HashMap::new();
+        let mut node_sets = HashMap::new();
 
         // For each SCC, expand the Export::All edges with respect to SCC export set
-        for scc in sccs.into_iter() {
-            let scc_set = self.scc_direct_export_set(&scc);
+        for (id, scc) in self.scc_map.iter() {
+            self.scc_export_set(&scc, &mut scc_sets, &mut node_sets);
+            let scc_set = scc_sets.get(id).expect("Missing scc set");
 
             let scc_root: CanonPath
-                = (*scc.iter().next().unwrap()).clone();
+                = (*scc.set.iter().next().unwrap()).clone();
 
             // For each node, export missing types, values, or nebulous edges
-            for node_path in scc.into_iter() {
+            for node_path in scc.set.iter() {
                 let mut expanded = Vec::new();
 
-                let node_set = self.node_sets.get(&node_path).unwrap();
+                let node_set = node_sets.get(node_path).unwrap();
                 let difference = scc_set.difference(node_set);
 
                 for export_key in difference.types.into_iter() {
@@ -539,7 +591,7 @@ impl<'a> ExpansionSession<'a> {
                 }
 
                 // Return cloned CanonPath's necessary to mutate original graph
-                expanded_exports.insert(node_path.clone(), expanded);
+                expanded_exports.insert((*node_path).clone(), expanded);
             }
         }
 
@@ -547,15 +599,32 @@ impl<'a> ExpansionSession<'a> {
     }
 }
 
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+struct SccId(u64);
+
+struct Scc<'a> {
+    id: SccId,
+    set: IndexSet<&'a CanonPath>,
+    outgoing_edges: HashSet<&'a CanonPath>,
+}
+
+impl<'a> Scc<'a> {
+    fn is_sink(&self) -> bool {
+        self.outgoing_edges.len() == 0
+    }
+}
+
 /// Tarjan's strongly connected components algorithm
 /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm#Complexity
 struct SccSession<'a> {
 
-    results: Vec<IndexSet<&'a CanonPath>>,
+    module_scc_map: HashMap<&'a CanonPath, SccId>,
+    results: HashMap<SccId, Scc<'a>>,
 
     current: Option<&'a CanonPath>,
     work_stack: Vec<&'a CanonPath>,
     curr_index: usize,
+    scc_index: u64,
 
     vertex_indices: HashMap<&'a CanonPath, usize>,
     vertex_low_links: HashMap<&'a CanonPath, usize>,
@@ -573,11 +642,13 @@ impl<'a> SccSession<'a> {
     ) -> Self {
         let session = SccSession {
 
-            results: Vec::new(),
+            module_scc_map: HashMap::new(),
+            results: HashMap::new(),
 
             current: None,
             work_stack: Vec::new(),
             curr_index: 0,
+            scc_index: 0,
 
             vertex_indices: HashMap::new(),
             vertex_low_links: HashMap::new(),
@@ -590,7 +661,25 @@ impl<'a> SccSession<'a> {
         session
     }
 
-    fn export_alls_scc(mut self) -> Vec<IndexSet<&'a CanonPath>> {
+    fn get_sccs(mut self) -> (HashMap<&'a CanonPath, SccId>, HashMap<SccId, Scc<'a>>) {
+        self.export_alls_scc();
+
+        for (_, scc) in self.results.iter_mut() {
+            for scc_member in scc.set.iter() {
+                for edge in self.original_exports.get(scc_member).unwrap().iter() {
+                    let edge_endpoint = edge.export_source();
+
+                    if scc.set.contains(edge_endpoint) == false {
+                        scc.outgoing_edges.insert(edge_endpoint);
+                    }
+                }
+            }
+        }
+
+        (self.module_scc_map, self.results)
+    }
+
+    fn export_alls_scc(&mut self) {
 
         for (node_path, _) in self.nodes.iter() {
             if self.vertex_indices.contains_key(node_path) == false {
@@ -598,8 +687,6 @@ impl<'a> SccSession<'a> {
                 self.scc();
             }
         }
-
-        self.results
     }
 
     fn scc(&mut self) {
@@ -670,7 +757,12 @@ impl<'a> SccSession<'a> {
             .unwrap();
 
         if v_ll == v_index {
-            let mut scc: IndexSet<&CanonPath> = IndexSet::new();
+            let scc_id = SccId(self.scc_index);
+            let mut scc = Scc {
+                id: scc_id,
+                set: IndexSet::new(),
+                outgoing_edges: HashSet::new(),
+            };
 
             let work_stack = {
                 let mut tmp = Vec::new();
@@ -680,12 +772,16 @@ impl<'a> SccSession<'a> {
 
             for path in work_stack.into_iter() {
                 if path != current_path {
+                    self.module_scc_map.insert(path, scc_id);
                     self.vertex_on_stack.remove(path);
-                    scc.insert(path);
+                    scc.set.insert(path);
                 }
             }
-            scc.insert(current_path);
-            self.results.push(scc);
+            self.module_scc_map.insert(current_path, scc_id);
+            scc.set.insert(current_path);
+            self.results.insert(scc_id, scc);
+
+            self.scc_index += 1;
         }
     }
 }
