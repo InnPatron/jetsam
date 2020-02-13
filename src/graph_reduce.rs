@@ -131,8 +131,8 @@ impl<'a> ResolutionSession<'a> {
 
                             }
 
-                            None => todo!("Error: type import not resolved [{}]:{} (as {})",
-                                source.as_path().display(), src_key, export_key),
+                            None => todo!("Error in [{}]: type import not resolved [{}]:{} (as {})",
+                                canon_path.as_path().display(), source.as_path().display(), src_key, export_key),
                         }
 
                     }
@@ -155,8 +155,8 @@ impl<'a> ResolutionSession<'a> {
 
                             }
 
-                            None => todo!("Error: value import not resolved [{}]:{} (as {})",
-                                source.as_path().display(), src_key, export_key),
+                            None => todo!("Error in [{}]: value import not resolved [{}]:{} (as {})",
+                                canon_path.as_path().display(), source.as_path().display(), src_key, export_key),
                         }
                     }
 
@@ -173,8 +173,8 @@ impl<'a> ResolutionSession<'a> {
                             self.traverse(source, src_key, ResolutionKind::Value);
 
                         if type_resolution.is_none() && value_resolution.is_none() {
-                            todo!("Error: import not resolved [{}]:{} (as {})",
-                                source.as_path().display(), src_key, export_key);
+                            todo!("Error in [{}]: import not resolved [{}]:{} (as {})",
+                                canon_path.as_path().display(), source.as_path().display(), src_key, export_key);
                         }
 
                         if let Some((path, key)) = type_resolution {
@@ -452,11 +452,11 @@ impl<'a> ExpansionSession<'a> {
 
         let node = self.nodes.get(path).unwrap();
         for v in node.rooted_export_values.iter() {
-            set.types.insert(v.clone());
+            set.values.insert(v.clone());
         }
 
         for t in node.rooted_export_types.iter() {
-            set.values.insert(t.clone());
+            set.types.insert(t.clone());
         }
 
         let edges = self.original_exports.get(path).unwrap();
