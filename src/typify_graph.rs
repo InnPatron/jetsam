@@ -68,6 +68,7 @@ struct NodeInitSession<'a, 'b> {
 
     rooted_values: HashMap<JsWord, Type>,
     rooted_types: HashMap<JsWord, Type>,
+    generated_types: HashMap<JsWord, Type>,
 
 }
 
@@ -90,6 +91,7 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
             path: &module_data.path,
             dependency_map: &module_data.dependencies,
 
+            generated_types: HashMap::new(),
             rooted_values: HashMap::new(),
             rooted_types: HashMap::new(),
 
@@ -243,9 +245,25 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                             //   item by adding an edge if it is an imported item
                             //   or by marking the item as rooted (under its export key)
 
-                            // Handle value
+
+                            // Handle types
+                            if let Some(ref state) = self.type_scope.get(&orig_key) {
+                                if let ItemState::Rooted = state {
+                                    let rooted_type = self.generated_types
+                                        .get(&orig_key)
+                                        .unwrap();
+                                    self.rooted_values.insert(
+                                        export_key.clone(),
+                                        rooted_type.clone()
+                                    );
+                                }
+                            }
+
+                            // Handle values
                             if let Some(ref state) = self.value_scope.get(&orig_key) {
-                                todo!("Export value");
+                                if let ItemStateT::Rooted(ref typ) = state {
+                                    self.rooted_values.insert(export_key, typ.clone());
+                                }
                             }
                         },
 
@@ -300,15 +318,16 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
             decl @ Decl::TsInterface(..) |
             decl @ Decl::TsTypeAlias(..) |
             decl @ Decl::TsEnum(..) => {
-                // TODO: Store the type somewhere as non-exported?
                 let typ = type_cons::construct_type(
                     self.path,
                     self.type_scope,
                     decl
                 )?;
+                let ident = bind_common::get_decl_ident(decl);
+
+                self.generated_types.insert(ident.sym.clone(), typ.clone());
 
                 if export {
-                    let ident = bind_common::get_decl_ident(decl);
                     self.rooted_types.insert(ident.sym.clone(), typ);
                 }
             }
