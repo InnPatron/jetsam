@@ -10,8 +10,8 @@ mod bind_common;
 mod bind_graph_init;
 mod graph_reduce;
 mod typify_graph;
-// mod emit;
-// mod emit_structures;
+mod emit;
+mod emit_structures;
 
 use std::sync::Arc;
 use std::path::PathBuf;
@@ -102,42 +102,18 @@ Some(cm.clone()));
             Ok(g) => g,
 
             Err(e) => {
-                eprintln!("bind-gen error: {:?}", e);
+                eprintln!("typify error: {:?}", e);
                 std::process::exit(1);
             }
         };
 
-        //let context =
-        //    bind_gen::Context::new(
-        //        input_path,
-        //        &handler,
-        //        cm.clone(),
-        //    );
-        //let mut bind_gen_session = bind_gen::BindGenSession::new();
+        match emit::emit_json(&output_dir, &cache.root, &typed_graph) {
+            Ok(..) => (),
 
-        //let module_info = (move || {
-        //    bind_gen_session.bind_root_module(context)
-        //})();
-
-        //let module_info = match module_info {
-        //    Ok(module_info) => module_info,
-
-        //    Err(e) => {
-
-        //        eprintln!("bind-gen error: {:?}", e);
-        //        std::process::exit(1);
-        //    }
-        //};
-
-        //let emit_result: Result<(), EmitError> = (move || {
-        //    let _ = emit::emit_json(&output_dir, &module_info)?;
-
-        //    Ok(())
-        //})();
-
-        //if let Err(e) = emit_result {
-        //    eprintln!("emit error: {:?}", e);
-        //    std::process::exit(1);
-        //}
+            Err(e) => {
+                eprintln!("json-emit error: {:?}", e);
+                std::process::exit(1);
+            }
+        }
     });
 }
