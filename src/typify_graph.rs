@@ -4,6 +4,7 @@ use swc_ecma_ast::*;
 use swc_atoms::JsWord;
 use swc_common::Span;
 
+use super::bind_common;
 use super::bind_init::{ModuleData, ParsedModuleCache as ModuleCache};
 use super::type_structs::*;
 use super::structures::{
@@ -258,25 +259,62 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
     }
 
     fn process_decl(&mut self, decl: &Decl, export: bool) -> Result<(), BindGenError> {
-        let symbol_types: Vec<(JsWord, Type)> = match decl {
-            Decl::Var(ref decl) =>
-                type_cons::construct_variable_types(
+
+
+        match decl {
+            Decl::Var(ref decl) => {
+                let vars = type_cons::construct_variable_types(
                     self.path,
                     self.type_scope,
                     decl,
-                )?,
+                )?;
 
+                for (symbol, typ) in vars.into_iter() {
+                    if export {
+                        self.rooted_values.insert(symbol.clone(), typ.clone());
+                    }
 
-            _ => vec![],
-        };
-
-        for (symbol, typ) in symbol_types.into_iter() {
-            if export {
-                self.rooted_values.insert(symbol.clone(), typ.clone());
+                    self.scope_value(symbol, ItemStateT::Rooted(typ));
+                }
             }
 
-            self.scope_value(symbol, ItemStateT::Rooted(typ));
-        }
+            Decl::Fn(ref decl) => {
+                let typ = type_cons::construct_fn_type(
+                    self.path,
+                    self.type_scope,
+                    &decl.function,
+                )?;
+
+                let symbol = decl
+                    .ident
+                    .sym.clone();
+
+                if export {
+                    self.rooted_values.insert(symbol.clone(), typ.clone());
+                }
+
+                self.scope_value(symbol, ItemStateT::Rooted(typ));
+            }
+
+            decl @ Decl::Class(..) |
+            decl @ Decl::TsInterface(..) |
+            decl @ Decl::TsTypeAlias(..) |
+            decl @ Decl::TsEnum(..) => {
+                // TODO: Store the type somewhere as non-exported?
+                let typ = type_cons::construct_type(
+                    self.path,
+                    self.type_scope,
+                    decl
+                )?;
+
+                if export {
+                    let ident = bind_common::get_decl_ident(decl);
+                    self.rooted_types.insert(ident.sym.clone(), typ);
+                }
+            }
+
+            _ => (),
+        };
 
         Ok(())
     }
