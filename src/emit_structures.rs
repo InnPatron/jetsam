@@ -4,7 +4,7 @@ use serde_json::{json, Map, Value};
 
 use serde_json::error::Error as JsonError;
 
-use super::structures::{PrimitiveType, Type};
+use super::type_structs::*;
 
 macro_rules! local_type {
     ($name: expr) => {
@@ -40,6 +40,7 @@ macro_rules! local_type {
 ///     "local-type-name": ["local", "local-type-name"]
 /// }
 pub struct JsonOutput {
+    anon_counter: u64,
     provides_values: Map<String, Value>,
     provides_aliases: Map<String, Value>,
     provides_datatypes: Map<String, Value>,
@@ -48,10 +49,17 @@ pub struct JsonOutput {
 impl JsonOutput {
     pub fn new() -> Self {
         JsonOutput {
+            anon_counter: 0,
             provides_values: Map::new(),
             provides_aliases: Map::new(),
             provides_datatypes: Map::new(),
         }
+    }
+
+    fn anon_inc(&mut self) -> u64 {
+        self.anon_counter += 1;
+
+        self.anon_counter
     }
 
     pub fn export_value(&mut self, name: &str, value_type: &Type) {
@@ -72,7 +80,7 @@ impl JsonOutput {
         }
 
         let local_type = local_type!(@V name);
-        let actual_type = JsonOutput::define_type(typ);
+        let actual_type = self.define_type(typ);
 
         self.provides_aliases.insert(name.to_string(), local_type);
         self.provides_datatypes.insert(name.to_string(), actual_type);
@@ -92,7 +100,7 @@ impl JsonOutput {
         serde_json::to_string_pretty(&map)
     }
 
-    fn define_type(typ: &Type) -> Value {
+    fn define_type(&mut self, typ: &Type) -> Value {
 
         macro_rules! opaque_type {
             ($name: expr) => {
@@ -105,28 +113,45 @@ impl JsonOutput {
                 ..
             } => JsonOutput::in_place_type_to_value(typ),
 
-            Type::Class {
+            Type::Class(ClassType {
                 ref name,
-                ref origin,
-                ref constructor,
-                ref fields,
-            } => opaque_type!(name),
+                ..
+            }) => opaque_type!(name),
 
             Type::Interface {
                 ref name,
-                ref origin,
-                ref fields,
+                ..
             } => opaque_type!(name),
+
+            Type::Literal {
+                ..
+            } => todo!("define type literal"),
+            //opaque_type!(format!("anon{}", self.anon_inc())),
+
+            Type::Named { .. } => todo!("Cannot define a named type"),
 
             Type::UnsizedArray(ref e_type) => todo!("Cannot re-define the unsized array type"),
 
             Type::Array(ref e_type, ref size) => todo!("Cannot re-define the array type"),
 
-            Type::Primitive(..) => todo!("Cannot re-define a primitive type"),
-
             Type::Alias { .. } => todo!("Aliases are not in the datatypes section"),
 
             Type::Union => todo!("Union types are not in the datatypes section"),
+
+            Type::Opaque {
+                ref name,
+                ..
+            } => opaque_type!(name),
+
+            Type::Boolean   |
+            Type::Number    |
+            Type::String    |
+            Type::Void      |
+            Type::Object    |
+            Type::Any       |
+            Type::Never     |
+            Type::Undefined |
+            Type::Null => todo!("Cannot redefine primitives"),
         }
     }
 
@@ -134,20 +159,17 @@ impl JsonOutput {
     /// Assumes types are already defined in the datatypes section.
     fn in_place_type_to_value(typ: &Type) -> Value {
         match typ {
-            Type::Fn {
-                ref origin,
-                ref type_signature,
-            } => {
-                let params: Vec<Value> = type_signature.params
+            Type::Fn(FnType {
+                ref params,
+                ref return_type,
+            })=> {
+                let params: Vec<Value> = params
                     .iter()
                     .map(|t| JsonOutput::in_place_type_to_value(t))
                     .collect();
 
-                // TODO: Default to Any or Nothing?
-                let return_type = type_signature.return_type
-                    .as_ref()
-                    .map(|t| JsonOutput::in_place_type_to_value(t))
-                    .unwrap_or(JsonOutput::in_place_type_to_value(&Type::Primitive(PrimitiveType::Any)));
+                let return_type =
+                    JsonOutput::in_place_type_to_value(return_type);
 
                 // [ "arrow", [params], return-type ]
                 json!([
@@ -157,25 +179,35 @@ impl JsonOutput {
                 ])
             }
 
-            Type::Class {
+            Type::Class(ClassType {
                 ref name,
-                ref origin,
-                ref constructor,
-                ref fields,
-            } => local_type!(@V name),
+                ..
+            }) => local_type!(@V name),
 
             Type::Interface {
                 ref name,
-                ref origin,
-                ref fields,
+                ..
             } => local_type!(@V name),
 
             // TODO: How to handle a type alias?
             Type::Alias {
                 ref name,
-                ref aliasing_type,
+                ..
             } => local_type!(@V name),
 
+            Type::Named {
+                ref name,
+                ..
+            } => local_type!(@V name),
+
+            Type::Opaque {
+                ref name,
+                ..
+            } => local_type!(@V name),
+
+            Type::Literal {
+                ..
+            } => todo!("Use type literal"),
 
             Type::UnsizedArray(ref e_type) => {
                 let e_type = JsonOutput::in_place_type_to_value(e_type);
@@ -212,27 +244,27 @@ impl JsonOutput {
                 ])
             }
 
-            Type::Primitive(PrimitiveType::Boolean) => json!("Boolean"),
+            Type::Boolean => json!("Boolean"),
 
-            Type::Primitive(PrimitiveType::Number) => json!("Number"),
+            Type::Number => json!("Number"),
 
-            Type::Primitive(PrimitiveType::String) => json!("String"),
+            Type::String => json!("String"),
 
-            Type::Primitive(PrimitiveType::Void) => json!("Nothing"),
+            Type::Void => json!("Nothing"),
 
-            Type::Primitive(PrimitiveType::Object) => {
+            Type::Object => {
                 todo!("Object primitive type");
             }
 
-            Type::Primitive(PrimitiveType::Any) => json!("Any"),
+            Type::Any => json!("Any"),
 
-            Type::Primitive(PrimitiveType::Never) => json!("tbot"),
+            Type::Never => json!("tbot"),
 
-            Type::Primitive(PrimitiveType::Undefined) => {
+            Type::Undefined => {
                 todo!("Undefined primitive type");
             }
 
-            Type::Primitive(PrimitiveType::Null) => {
+            Type::Null => {
                 todo!();
             }
 
