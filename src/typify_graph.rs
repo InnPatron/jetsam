@@ -36,6 +36,7 @@ pub fn typify(cache: &ModuleCache, ut_graph: UTModuleGraph) -> Result<ModuleGrap
     Ok(graph)
 }
 
+#[derive(Debug)]
 pub struct ModuleNode {
     pub path: CanonPath,
     pub rooted_export_types: HashMap<JsWord, Type>,
@@ -270,6 +271,10 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
         };
 
         for (symbol, typ) in symbol_types.into_iter() {
+            if export {
+                self.rooted_values.insert(symbol.clone(), typ.clone());
+            }
+
             self.scope_value(symbol, ItemStateT::Rooted(typ));
         }
 
