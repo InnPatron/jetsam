@@ -16,6 +16,12 @@ macro_rules! local_type {
     }
 }
 
+macro_rules! opaque_record {
+    () => {
+        json!(["record", {}])
+    }
+}
+
 /// datatype formats:
 ///     [ "data", name, [type-param-names], [variants], [methods] ]
 ///     [ "arrow", [params], return-type ]
@@ -207,7 +213,7 @@ impl JsonOutput {
 
             Type::Literal {
                 ..
-            } => todo!("Use type literal"),
+            } => opaque_record!(),
 
             Type::UnsizedArray(ref e_type) => {
                 let e_type = JsonOutput::in_place_type_to_value(e_type);
