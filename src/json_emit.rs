@@ -279,10 +279,3 @@ impl JsonOutput {
         }
     }
 }
-
-
-pub struct JsOutput;
-
-impl JsOutput {
-
-}

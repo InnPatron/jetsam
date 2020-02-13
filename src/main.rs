@@ -11,7 +11,7 @@ mod bind_graph_init;
 mod graph_reduce;
 mod typify_graph;
 mod emit;
-mod emit_structures;
+mod json_emit;
 
 use std::sync::Arc;
 use std::path::PathBuf;

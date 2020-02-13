@@ -6,7 +6,7 @@ use std::io::Write;
 use serde_json::{json, Value};
 
 use super::structures::*;
-use super::emit_structures::*;
+use super::json_emit::*;
 use super::error::EmitError;
 use super::typify_graph::{ModuleGraph, ModuleNode};
 
