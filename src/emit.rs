@@ -67,7 +67,6 @@ fn traverse(root: &CanonPath, graph: &ModuleGraph, json_output: &mut JsonOutput)
         visited.insert(node_path);
 
         let node = graph.nodes.get(node_path).unwrap();
-        dbg!(node);
 
         for (export_key, typ) in node.rooted_export_types.iter() {
             json_output.export_type(export_key, typ);
