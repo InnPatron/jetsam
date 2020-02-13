@@ -18,6 +18,8 @@ use super::structures::CanonPath;
 /// POST-CONDITION:
 ///   All Import::Named edges transformed into Import::NamedType and/or Import::NamedValue
 ///   All Export::Named edges transformed into Export::NamedType and/or Export::NamedValue
+///   All Export::All edges are transformed into a set of Export::NamedType and/or
+///      Export::NamedValue
 ///   All new edges point directly to a rooted value
 pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
 
@@ -62,16 +64,20 @@ pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
 
     let export_edges = session.new_exports
         .into_iter()
-        .map(|(p, edges)| (p.clone(), edges))
+        .map(|(p, edges)| {
+            let edges = edges.into_iter().filter(|e| match e {
+                Export::All { .. } => false,
+                _ => true,
+            }).collect();
+
+            (p.clone(), edges)
+        })
         .collect();
 
     let import_edges = session.new_imports
         .into_iter()
         .map(|(p, edges)| (p.clone(), edges))
         .collect();
-
-    // TODO: Remove Export::All edges
-    //    and unify strongly connected components export interfaces
 
     Ok(ModuleGraph {
         nodes: graph.nodes,
