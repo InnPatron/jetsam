@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use super::structures::*;
 use super::emit_structures::*;
 use super::error::EmitError;
+use super::typify_graph::{ModuleGraph, ModuleNode};
 
 #[derive(PartialEq, Eq, Hash)]
 struct TypeKey {
@@ -15,10 +16,11 @@ struct TypeKey {
     js_origin: String,
 }
 
-pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), EmitError> {
+pub fn emit_json(outdir: &Path, root_module_path: &CanonPath, typed_graph: &ModuleGraph)
+    -> Result<(), EmitError> {
 
-    let file_name = root_module_info
-        .path()
+    let file_name = root_module_path
+        .as_path()
         .file_stem()
         .expect("Root module info path has no filename");
     let json_output_path = {
@@ -33,18 +35,10 @@ pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), Emi
 
     let mut output = JsonOutput::new();
 
-    for (export_key, typ) in root_module_info.exported_types() {
-        output.export_type(export_key, typ);
-    }
-
-    for (export_key, typ) in root_module_info.exported_values() {
-        output.export_value(export_key, typ);
-    }
-
-    // TODO: Emit values
+    traverse(root_module_path, typed_graph, &mut output);
 
     // Emit JSON into file
-    let root_path = root_module_info.path().to_owned();
+    let root_path = root_module_path.as_path().to_owned();
     let mut file =
         File::create(json_output_path)
         .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
@@ -57,4 +51,36 @@ pub fn emit_json(outdir: &Path, root_module_info: &ModuleInfo) -> Result<(), Emi
         .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
     Ok(())
+}
+
+fn traverse(root: &CanonPath, graph: &ModuleGraph, json_output: &mut JsonOutput) {
+    let mut visited: HashSet<&CanonPath> = HashSet::new();
+
+    let mut stack: Vec<&CanonPath> = vec![root];
+
+    while stack.is_empty() == false {
+        let node_path = stack.pop().unwrap();
+
+        if visited.contains(node_path) {
+            continue;
+        }
+        visited.insert(node_path);
+
+        let node = graph.nodes.get(node_path).unwrap();
+        dbg!(node);
+
+        for (export_key, typ) in node.rooted_export_types.iter() {
+            json_output.export_type(export_key, typ);
+        }
+
+        for (export_key, typ) in node.rooted_export_values.iter() {
+            json_output.export_value(export_key, typ);
+        }
+
+        let edges = graph.export_edges.get(node_path).unwrap();
+
+        for edge in edges {
+            stack.push(edge.export_source());
+        }
+    }
 }
