@@ -1,7 +1,6 @@
 #[macro_use]
 mod macros;
 mod error;
-// mod bind_gen;
 mod structures;
 mod type_structs;
 mod init_type_scope;
@@ -11,7 +10,6 @@ mod bind_common;
 mod bind_graph_init;
 mod graph_reduce;
 mod typify_graph;
-// mod bind_graph;
 // mod emit;
 // mod emit_structures;
 
