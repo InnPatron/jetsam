@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::convert::TryFrom;
 
+use swc_ecma_ast::*;
 use swc_common::{BytePos, SyntaxContext, Span};
 
 use super::structures::CanonPath;
@@ -48,5 +49,17 @@ fn prepare_path(path: &mut PathBuf) {
         None => {
             path.set_extension("d.ts");
         }
+    }
+}
+
+pub fn get_decl_ident(decl: &Decl) -> &Ident {
+    match decl {
+        Decl::Class(ClassDecl { ref ident, .. }) => ident,
+        Decl::Fn(FnDecl { ref ident, .. }) => ident,
+        Decl::Var(..) => panic!("get_decl_ident() does not work on var"),
+        Decl::TsInterface(TsInterfaceDecl { ref id, .. }) => id,
+        Decl::TsTypeAlias(TsTypeAliasDecl { ref id, .. }) => id,
+        Decl::TsEnum(TsEnumDecl { ref id, .. }) => id,
+        Decl::TsModule(..) => panic!("get_decl_ident() does not work on TsModule"),
     }
 }
