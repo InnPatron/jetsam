@@ -6,3 +6,9 @@
 
 ## Building
 Requires Rust (tested on 1.41 stable)
+
+## Usage
+
+`jetsam -i ROOT_MODULE_D_TS -o OUTUPT_DIR`
+
+See `jetsam --help` for more info
