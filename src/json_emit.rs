@@ -134,9 +134,9 @@ impl JsonOutput {
 
             Type::Named { .. } => todo!("Cannot define a named type"),
 
-            Type::UnsizedArray(ref e_type) => todo!("Cannot re-define the unsized array type"),
+            Type::UnsizedArray(ref _e_type) => todo!("Cannot re-define the unsized array type"),
 
-            Type::Array(ref e_type, ref size) => todo!("Cannot re-define the array type"),
+            Type::Array(ref _e_type, ref _size) => todo!("Cannot re-define the array type"),
 
             Type::Alias { .. } => todo!("Aliases are not in the datatypes section"),
 
@@ -230,7 +230,7 @@ impl JsonOutput {
                 ])
             }
 
-            Type::Array(ref e_type, ref size) => {
+            Type::Array(ref e_type, ref _size) => {
                 // TODO: Use size somehow
                 let e_type = JsonOutput::in_place_type_to_value(e_type);
                 json!([

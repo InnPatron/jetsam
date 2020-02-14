@@ -80,12 +80,12 @@ pub fn init<'a>(
         )?;
 
         let dependencies = scan_dependencies(&current_path, &module_ast, span)?;
-        work_stack.extend(dependencies.iter().map(|(k, (p, s))| (p.clone(), Some(s.clone()))));
+        work_stack.extend(dependencies.iter().map(|(_, (p, s))| (p.clone(), Some(s.clone()))));
 
         let module_data = ModuleData {
             path: current_path.clone(),
             module_ast,
-            dependencies: dependencies.into_iter().map(|(k, (p, s))| (k, p)).collect(),
+            dependencies: dependencies.into_iter().map(|(k, (p, _))| (k, p)).collect(),
         };
 
         module_cache.insert(current_path.clone(), module_data);
@@ -100,7 +100,7 @@ pub fn init<'a>(
 fn scan_dependencies(
     module_path: &CanonPath,
     module_ast: &Module,
-    original_span: Span,
+    _original_span: Span,
 ) -> Result<HashMap<String, (CanonPath, Span)>, BindGenError> {
     use swc_ecma_ast::*;
 

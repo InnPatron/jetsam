@@ -41,7 +41,7 @@ impl<'a> InitSession<'a> {
 
     fn process_stmt(&mut self, stmt: &Stmt) -> Result<(), BindGenError> {
         if let Stmt::Decl(ref decl) = stmt {
-            self.process_decl(decl, false)?;
+            self.process_decl(decl)?;
         }
 
         Ok(())
@@ -64,7 +64,7 @@ impl<'a> InitSession<'a> {
             ModuleDecl::ExportDecl(ExportDecl {
                 ref decl,
                 ..
-            }) => self.process_decl(decl, true),
+            }) => self.process_decl(decl),
 
             _ => Ok(()),
         }
@@ -113,7 +113,7 @@ impl<'a> InitSession<'a> {
         }
     }
 
-    fn process_decl(&mut self, decl: &Decl, export: bool) -> Result<(), BindGenError> {
+    fn process_decl(&mut self, decl: &Decl) -> Result<(), BindGenError> {
         let symbol = match decl {
             Decl::Class(ClassDecl {
                 ref ident,
