@@ -10,12 +10,6 @@ use super::json_emit::*;
 use super::error::EmitError;
 use super::typify_graph::{ModuleGraph, ModuleNode};
 
-#[derive(PartialEq, Eq, Hash)]
-struct TypeKey {
-    name: String,
-    js_origin: String,
-}
-
 pub fn emit_json(outdir: &Path, root_module_path: &CanonPath, typed_graph: &ModuleGraph)
     -> Result<(), EmitError> {
 
@@ -30,8 +24,6 @@ pub fn emit_json(outdir: &Path, root_module_path: &CanonPath, typed_graph: &Modu
 
         output_path
     };
-
-    let mut emitted_types: HashSet<TypeKey> = HashSet::new();
 
     let mut output = JsonOutput::new();
 
