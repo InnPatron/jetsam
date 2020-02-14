@@ -35,7 +35,7 @@ fn output_directory_validator(arg: String) -> Result<(), String> {
 
 fn main() {
 
-    let matches = App::new("plank")
+    let matches = App::new("jetsam")
         .arg(Arg::with_name("INPUT")
             .short("i")
             .long("input")
