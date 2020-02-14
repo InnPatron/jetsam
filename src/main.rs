@@ -111,6 +111,7 @@ Some(cm.clone()));
         let options = emit::EmitOptions {
             json: true,
             js: true,
+            js_include_path: None,
         };
 
         match emit::emit(options, &output_dir, &cache.root, &typed_graph) {

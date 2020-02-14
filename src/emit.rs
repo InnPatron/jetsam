@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 
 use super::structures::*;
 use super::json_emit::*;
+use super::js_emit::*;
 use super::error::EmitError;
 use super::typify_graph::{ModuleGraph, ModuleNode};
 
@@ -14,6 +15,7 @@ use super::typify_graph::{ModuleGraph, ModuleNode};
 pub struct EmitOptions {
     pub json: bool,
     pub js: bool,
+    pub js_include_path: Option<String>,
 }
 
 macro_rules! opt {
@@ -25,7 +27,8 @@ macro_rules! opt {
 }
 
 struct Context {
-    json_output: JsonOutput
+    json_output: JsonOutput,
+    js_output: JsOutput,
 }
 
 pub fn emit(
@@ -39,16 +42,10 @@ pub fn emit(
         .as_path()
         .file_stem()
         .expect("Root module info path has no filename");
-    let json_output_path = {
-        let mut output_path = outdir.to_owned();
-        output_path.push(file_name);
-        output_path.set_extension("arr.json");
-
-        output_path
-    };
 
     let mut context = Context {
         json_output: JsonOutput::new(),
+        js_output: JsOutput::new(),
     };
 
     traverse(
@@ -60,6 +57,14 @@ pub fn emit(
 
     opt!(options, json, {
 
+        let json_output_path = {
+            let mut output_path = outdir.to_owned();
+            output_path.push(file_name);
+            output_path.set_extension("arr.json");
+
+            output_path
+        };
+
         // Emit JSON into file
         let root_path = root_module_path.as_path().to_owned();
         let mut file =
@@ -69,6 +74,39 @@ pub fn emit(
         let output = context.json_output
             .finalize()
             .map_err(|json_err| EmitError::JsonError(root_path.to_owned(), json_err))?;
+
+        file.write_all(output.as_bytes())
+            .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
+
+    });
+
+    opt!(options, js, {
+
+        let js_output_path = {
+            let mut output_path = outdir.to_owned();
+            output_path.push(file_name);
+            output_path.set_extension("arr.js");
+
+            output_path
+        };
+
+        // Emit JS into file
+        let root_path = root_module_path.as_path();
+        let default_require_path: String = {
+            use std::path::PathBuf;
+            let mut buff = PathBuf::new();
+            buff.push("./");
+            buff.push(root_path.file_stem().unwrap());
+            buff.set_extension("js");
+
+            buff.display().to_string()
+        };
+        let mut file =
+            File::create(js_output_path)
+            .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
+
+        let output = context.js_output
+            .finalize(&options, default_require_path);
 
         file.write_all(output.as_bytes())
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
@@ -105,6 +143,17 @@ fn traverse(
 
             for (export_key, typ) in node.rooted_export_values.iter() {
                 context.json_output.export_value(export_key, typ);
+            }
+        });
+
+
+        opt!(options, js, {
+            for (export_key, typ) in node.rooted_export_types.iter() {
+                context.js_output.handle_type(export_key, typ);
+            }
+
+            for (export_key, typ) in node.rooted_export_values.iter() {
+                context.js_output.handle_value(export_key, typ);
             }
         });
 
