@@ -226,7 +226,7 @@ impl JsonOutput {
                         },
                         "name":"RawArray"
                     },
-                    e_type
+                    [e_type],
                 ])
             }
 
