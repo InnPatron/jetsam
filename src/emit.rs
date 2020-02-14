@@ -10,8 +10,26 @@ use super::json_emit::*;
 use super::error::EmitError;
 use super::typify_graph::{ModuleGraph, ModuleNode};
 
-pub fn emit_json(outdir: &Path, root_module_path: &CanonPath, typed_graph: &ModuleGraph)
-    -> Result<(), EmitError> {
+#[derive(Clone)]
+pub struct EmitOptions {
+    pub json: bool,
+    pub js: bool,
+}
+
+macro_rules! opt {
+    ($options: expr, $opt:ident, $body: block) => {
+        if $options.$opt {
+            $body
+        }
+    }
+}
+
+pub fn emit(
+    options: EmitOptions,
+    outdir: &Path,
+    root_module_path: &CanonPath,
+    typed_graph: &ModuleGraph
+) -> Result<(), EmitError> {
 
     let file_name = root_module_path
         .as_path()
@@ -27,25 +45,39 @@ pub fn emit_json(outdir: &Path, root_module_path: &CanonPath, typed_graph: &Modu
 
     let mut output = JsonOutput::new();
 
-    traverse(root_module_path, typed_graph, &mut output);
+    traverse(
+        &options,
+        root_module_path,
+        typed_graph,
+        &mut output
+    );
 
-    // Emit JSON into file
-    let root_path = root_module_path.as_path().to_owned();
-    let mut file =
-        File::create(json_output_path)
-        .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
+    opt!(options, json, {
 
-    let output = output
-        .finalize()
-        .map_err(|json_err| EmitError::JsonError(root_path.to_owned(), json_err))?;
+        // Emit JSON into file
+        let root_path = root_module_path.as_path().to_owned();
+        let mut file =
+            File::create(json_output_path)
+            .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
-    file.write_all(output.as_bytes())
-        .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
+        let output = output
+            .finalize()
+            .map_err(|json_err| EmitError::JsonError(root_path.to_owned(), json_err))?;
+
+        file.write_all(output.as_bytes())
+            .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
+
+    });
 
     Ok(())
 }
 
-fn traverse(root: &CanonPath, graph: &ModuleGraph, json_output: &mut JsonOutput) {
+fn traverse(
+    options: &EmitOptions,
+    root: &CanonPath,
+    graph: &ModuleGraph,
+    json_output: &mut JsonOutput
+) {
     let mut visited: HashSet<&CanonPath> = HashSet::new();
 
     let mut stack: Vec<&CanonPath> = vec![root];
@@ -60,13 +92,15 @@ fn traverse(root: &CanonPath, graph: &ModuleGraph, json_output: &mut JsonOutput)
 
         let node = graph.nodes.get(node_path).unwrap();
 
-        for (export_key, typ) in node.rooted_export_types.iter() {
-            json_output.export_type(export_key, typ);
-        }
+        opt!(options, json, {
+            for (export_key, typ) in node.rooted_export_types.iter() {
+                json_output.export_type(export_key, typ);
+            }
 
-        for (export_key, typ) in node.rooted_export_values.iter() {
-            json_output.export_value(export_key, typ);
-        }
+            for (export_key, typ) in node.rooted_export_values.iter() {
+                json_output.export_value(export_key, typ);
+            }
+        });
 
         let edges = graph.export_edges.get(node_path).unwrap();
 
