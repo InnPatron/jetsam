@@ -18,14 +18,6 @@ pub struct EmitOptions {
     pub output_constructor_wrappers: bool,
 }
 
-macro_rules! opt {
-    ($options: expr, $opt:ident, $body: block) => {
-        if $options.$opt {
-            $body
-        }
-    }
-}
-
 struct Context<'a> {
     json_output: JsonOutput<'a>,
     js_output: JsOutput<'a>,
