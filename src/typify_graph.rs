@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use swc_ecma_ast::*;
 use swc_atoms::JsWord;
@@ -16,10 +16,8 @@ use super::structures::{
 use super::error::*;
 use super::bind_graph_init::{
     ModuleGraph as UTModuleGraph,
-    ModuleNode as UTModuleNode,
     Import,
     Export,
-    ScopeKind,
 };
 use super::type_construction as type_cons;
 

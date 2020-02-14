@@ -1,7 +1,5 @@
-use std::error::Error;
 use std::io::Error as IoError;
 use std::path::PathBuf;
-use std::fmt::Display;
 
 use swc_common::Span;
 use serde_json::error::Error as JsonError;

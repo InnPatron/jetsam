@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use swc_atoms::JsWord;
 use swc_ecma_ast::*;
 
-use super::bind_init::ModuleData;
-
 use super::type_structs::*;
 use super::structures::{ ItemState, Scope, CanonPath };
 use super::error::*;

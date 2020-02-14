@@ -3,13 +3,11 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Write;
 
-use serde_json::{json, Value};
-
 use super::structures::*;
 use super::json_emit::*;
 use super::js_emit::*;
 use super::error::EmitError;
-use super::typify_graph::{ModuleGraph, ModuleNode};
+use super::typify_graph::ModuleGraph;
 
 #[derive(Clone)]
 pub struct EmitOptions {

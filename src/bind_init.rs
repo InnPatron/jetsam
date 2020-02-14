@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use swc_common::{BytePos, SyntaxContext, Span, SourceMap};
 use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, TsConfig, JscTarget};
-use swc_ecma_ast::{Str, Module};
+use swc_ecma_ast::Module;
 
 use super::bind_common;
 use super::structures::CanonPath;

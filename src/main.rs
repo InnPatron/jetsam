@@ -19,13 +19,11 @@ use std::path::PathBuf;
 
 use swc_common::{
     errors::{ColorConfig, Handler},
-    FileName, FilePathMapping, SourceMap,
+    SourceMap,
 };
-use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, TsConfig, JscTarget};
+use swc_ecma_parser::Session;
 
 use clap::{Arg, App};
-
-use error::EmitError;
 
 fn output_directory_validator(arg: String) -> Result<(), String> {
     if PathBuf::from(arg).is_dir() {

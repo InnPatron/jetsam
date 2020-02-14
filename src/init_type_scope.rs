@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use swc_ecma_ast::*;
-use swc_atoms::JsWord;
 
 use super::bind_init::ModuleData;
 

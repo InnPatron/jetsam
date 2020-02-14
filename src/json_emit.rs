@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use serde_json::{json, Map, Value};
 
 use serde_json::error::Error as JsonError;

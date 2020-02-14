@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use swc_atoms::JsWord;
-use swc_common::Span;
-use swc_ecma_ast::Str;
 
 use super::type_structs::Type;
 
