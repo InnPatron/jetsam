@@ -15,6 +15,7 @@ pub struct EmitOptions {
     pub js: bool,
     pub output_file_stem: Option<String>,
     pub require_path: Option<String>,
+    pub output_constructor_wrappers: bool,
 }
 
 macro_rules! opt {

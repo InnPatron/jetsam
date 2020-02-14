@@ -25,12 +25,18 @@ use swc_ecma_parser::Session;
 
 use clap::{Arg, App};
 
+const DEFAULT_OUTPUT_CONSTRUCTOR_WRAPPERS: &'static str = "true";
+
 fn output_directory_validator(arg: String) -> Result<(), String> {
     if PathBuf::from(arg).is_dir() {
         Ok(())
     } else {
         Err("Expected output argument to be a directory".to_string())
     }
+}
+
+fn bool_validator(arg: String) -> Result<(), String> {
+    arg.parse::<bool>().map_err(|_| "Expected bool".to_string()).map(|_| ())
 }
 
 fn main() {
@@ -57,6 +63,12 @@ fn main() {
             .long("output-file-stem")
             .takes_value(true)
             .required(false))
+        .arg(Arg::with_name("OUTPUT CONTRUCTOR WRAPPERS")
+            .long("constructor-wrappers")
+            .takes_value(true)
+            .required(false)
+            .default_value(DEFAULT_OUTPUT_CONSTRUCTOR_WRAPPERS)
+            .validator(bool_validator))
         .get_matches();
 
     let input_path =
@@ -70,6 +82,13 @@ fn main() {
 
     let file_stem =
         matches.value_of("OUTPUT FILE STEM");
+
+    let output_constructor_wrappers =
+        matches.value_of("OUTPUT CONTRUCTOR WRAPPERS")
+        .expect("No output constructor wrapper");
+
+    let output_constructor_wrappers = output_constructor_wrappers.parse::<bool>()
+        .expect("Failed validation");
 
     let output_dir = PathBuf::from(output_dir);
     let input_path = PathBuf::from(input_path);
@@ -125,6 +144,7 @@ Some(cm.clone()));
             js: true,
             require_path: require_path.map(|input| input.to_string()),
             output_file_stem: file_stem.map(|f| f.to_string()),
+            output_constructor_wrappers,
         };
 
         match emit::emit(options, &output_dir, &cache.root, &typed_graph) {
