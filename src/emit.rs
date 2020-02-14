@@ -26,9 +26,9 @@ macro_rules! opt {
     }
 }
 
-struct Context {
-    json_output: JsonOutput,
-    js_output: JsOutput,
+struct Context<'a> {
+    json_output: JsonOutput<'a>,
+    js_output: JsOutput<'a>,
 }
 
 pub fn emit(
@@ -49,8 +49,8 @@ pub fn emit(
         });
 
     let mut context = Context {
-        json_output: JsonOutput::new(),
-        js_output: JsOutput::new(),
+        json_output: JsonOutput::new(&options),
+        js_output: JsOutput::new(&options),
     };
 
     traverse(
@@ -111,7 +111,7 @@ pub fn emit(
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
         let output = context.js_output
-            .finalize(&options, default_require_path);
+            .finalize(default_require_path);
 
         file.write_all(output.as_bytes())
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;

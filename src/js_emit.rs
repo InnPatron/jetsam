@@ -3,13 +3,15 @@ use std::collections::HashMap;
 use super::type_structs::*;
 use super::emit::EmitOptions;
 
-pub struct JsOutput {
+pub struct JsOutput<'a> {
+    options: &'a EmitOptions,
     overrides: HashMap<String, String>
 }
 
-impl JsOutput {
-    pub fn new() -> Self {
+impl<'a> JsOutput<'a> {
+    pub fn new(options: &'a EmitOptions) -> Self {
         JsOutput {
+            options,
             overrides: HashMap::new(),
         }
     }
@@ -22,10 +24,10 @@ impl JsOutput {
         // Do nothing for now
     }
 
-    pub fn finalize(self, options: &EmitOptions, default_require_path: String) -> String {
+    pub fn finalize(self, default_require_path: String) -> String {
         let mut output = String::new();
 
-        let require_path = options.require_path
+        let require_path = self.options.require_path
             .as_ref()
             .map(|p| p.clone())
             .unwrap_or(default_require_path);

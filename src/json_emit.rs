@@ -2,6 +2,7 @@ use serde_json::{json, Map, Value};
 
 use serde_json::error::Error as JsonError;
 
+use super::emit::EmitOptions;
 use super::type_structs::*;
 
 macro_rules! local_type {
@@ -43,16 +44,18 @@ macro_rules! opaque_record {
 /// "aliases": {
 ///     "local-type-name": ["local", "local-type-name"]
 /// }
-pub struct JsonOutput {
+pub struct JsonOutput<'a> {
     anon_counter: u64,
     provides_values: Map<String, Value>,
     provides_aliases: Map<String, Value>,
     provides_datatypes: Map<String, Value>,
+    options: &'a EmitOptions,
 }
 
-impl JsonOutput {
-    pub fn new() -> Self {
+impl<'a> JsonOutput<'a> {
+    pub fn new(options: &'a EmitOptions) -> Self {
         JsonOutput {
+            options,
             anon_counter: 0,
             provides_values: Map::new(),
             provides_aliases: Map::new(),
