@@ -736,9 +736,9 @@ impl<'a> SccSession<'a> {
                     let w_ll = self.vertex_low_links.get(to)
                         .unwrap();
 
-                    std::cmp::min(v_ll, w_ll)
+                    std::cmp::min(v_ll, w_ll).clone()
                 };
-                self.vertex_low_links.insert(current_path, *low_link);
+                self.vertex_low_links.insert(current_path, low_link);
 
             } else if self.vertex_on_stack.contains(to) {
 
@@ -749,9 +749,9 @@ impl<'a> SccSession<'a> {
                     let w_index = self.vertex_indices.get(to)
                         .unwrap();
 
-                    std::cmp::min(v_ll, w_index)
+                    std::cmp::min(v_ll, w_index).clone()
                 };
-                self.vertex_low_links.insert(current_path, *low_link);
+                self.vertex_low_links.insert(current_path, low_link);
 
             }
         }
