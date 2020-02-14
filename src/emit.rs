@@ -24,6 +24,10 @@ macro_rules! opt {
     }
 }
 
+struct Context {
+    json_output: JsonOutput
+}
+
 pub fn emit(
     options: EmitOptions,
     outdir: &Path,
@@ -43,13 +47,15 @@ pub fn emit(
         output_path
     };
 
-    let mut output = JsonOutput::new();
+    let mut context = Context {
+        json_output: JsonOutput::new(),
+    };
 
     traverse(
         &options,
         root_module_path,
         typed_graph,
-        &mut output
+        &mut context,
     );
 
     opt!(options, json, {
@@ -60,7 +66,7 @@ pub fn emit(
             File::create(json_output_path)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
-        let output = output
+        let output = context.json_output
             .finalize()
             .map_err(|json_err| EmitError::JsonError(root_path.to_owned(), json_err))?;
 
@@ -76,7 +82,7 @@ fn traverse(
     options: &EmitOptions,
     root: &CanonPath,
     graph: &ModuleGraph,
-    json_output: &mut JsonOutput
+    context: &mut Context,
 ) {
     let mut visited: HashSet<&CanonPath> = HashSet::new();
 
@@ -94,11 +100,11 @@ fn traverse(
 
         opt!(options, json, {
             for (export_key, typ) in node.rooted_export_types.iter() {
-                json_output.export_type(export_key, typ);
+                context.json_output.export_type(export_key, typ);
             }
 
             for (export_key, typ) in node.rooted_export_values.iter() {
-                json_output.export_value(export_key, typ);
+                context.json_output.export_value(export_key, typ);
             }
         });
 
