@@ -13,6 +13,7 @@ mod typify_graph;
 mod emit;
 mod json_emit;
 mod js_emit;
+mod emit_common;
 
 use std::sync::Arc;
 use std::path::PathBuf;
