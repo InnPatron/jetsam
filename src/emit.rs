@@ -13,6 +13,7 @@ use super::typify_graph::ModuleGraph;
 pub struct EmitOptions {
     pub json: bool,
     pub js: bool,
+    pub output_file_stem: Option<String>,
     pub require_path: Option<String>,
 }
 
@@ -36,10 +37,15 @@ pub fn emit(
     typed_graph: &ModuleGraph
 ) -> Result<(), EmitError> {
 
-    let file_name = root_module_path
-        .as_path()
-        .file_stem()
-        .expect("Root module info path has no filename");
+    let file_name = options.output_file_stem
+        .as_ref()
+        .map(|f| std::ffi::OsStr::new(f))
+        .unwrap_or_else(|| {
+            root_module_path
+                .as_path()
+                .file_stem()
+                .expect("Root module info path has no filename")
+        });
 
     let mut context = Context {
         json_output: JsonOutput::new(),

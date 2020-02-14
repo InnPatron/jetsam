@@ -53,6 +53,10 @@ fn main() {
             .long("require-path")
             .takes_value(true)
             .required(false))
+        .arg(Arg::with_name("OUTPUT FILE STEM")
+            .long("output-file-stem")
+            .takes_value(true)
+            .required(false))
         .get_matches();
 
     let input_path =
@@ -60,8 +64,12 @@ fn main() {
 
     let output_dir =
         matches.value_of("OUTPUT").expect("No output directory");
+
     let require_path =
         matches.value_of("REQUIRE PATH");
+
+    let file_stem =
+        matches.value_of("OUTPUT FILE STEM");
 
     let output_dir = PathBuf::from(output_dir);
     let input_path = PathBuf::from(input_path);
@@ -116,6 +124,7 @@ Some(cm.clone()));
             json: true,
             js: true,
             require_path: require_path.map(|input| input.to_string()),
+            output_file_stem: file_stem.map(|f| f.to_string()),
         };
 
         match emit::emit(options, &output_dir, &cache.root, &typed_graph) {
