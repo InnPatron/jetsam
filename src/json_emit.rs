@@ -108,7 +108,7 @@ impl JsonOutput {
 
         macro_rules! opaque_type {
             ($name: expr) => {
-                json!(["data", $name, [], [], []]);
+                json!(["data", $name, [], [], {}]);
             }
         }
 
