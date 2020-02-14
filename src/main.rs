@@ -49,6 +49,10 @@ fn main() {
             .takes_value(true)
             .required(true)
             .validator(output_directory_validator))
+        .arg(Arg::with_name("REQUIRE PATH")
+            .long("require-path")
+            .takes_value(true)
+            .required(false))
         .get_matches();
 
     let input_path =
@@ -56,6 +60,8 @@ fn main() {
 
     let output_dir =
         matches.value_of("OUTPUT").expect("No output directory");
+    let require_path =
+        matches.value_of("REQUIRE PATH");
 
     let output_dir = PathBuf::from(output_dir);
     let input_path = PathBuf::from(input_path);
@@ -109,7 +115,7 @@ Some(cm.clone()));
         let options = emit::EmitOptions {
             json: true,
             js: true,
-            js_include_path: None,
+            require_path: require_path.map(|input| input.to_string()),
         };
 
         match emit::emit(options, &output_dir, &cache.root, &typed_graph) {

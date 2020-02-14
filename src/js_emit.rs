@@ -25,7 +25,7 @@ impl JsOutput {
     pub fn finalize(self, options: &EmitOptions, default_require_path: String) -> String {
         let mut output = String::new();
 
-        let require_path = options.js_include_path
+        let require_path = options.require_path
             .as_ref()
             .map(|p| p.clone())
             .unwrap_or(default_require_path);

@@ -13,7 +13,7 @@ use super::typify_graph::ModuleGraph;
 pub struct EmitOptions {
     pub json: bool,
     pub js: bool,
-    pub js_include_path: Option<String>,
+    pub require_path: Option<String>,
 }
 
 macro_rules! opt {
