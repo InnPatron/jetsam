@@ -2,6 +2,7 @@ use serde_json::{json, Map, Value};
 
 use serde_json::error::Error as JsonError;
 
+use super::emit_common;
 use super::emit::EmitOptions;
 use super::type_structs::*;
 
@@ -77,13 +78,37 @@ impl<'a> JsonOutput<'a> {
 
     pub fn export_type(&mut self, name: &str, typ: &Type) {
 
-        if let Type::Alias {
-            ref name,
-            ref aliasing_type,
-        } = typ {
+        match typ {
 
-            self.provides_aliases.insert(name.to_string(), local_type!(@V name));
-            return;
+            Type::Alias {
+                ref name,
+                ref aliasing_type,
+            } => {
+
+                self.provides_aliases.insert(name.to_string(), local_type!(@V name));
+                return;
+            }
+
+            Type::Class(ref class_type) => {
+                opt!(self.options, output_constructor_wrappers, {
+                    for (index, constructor) in class_type.constructors.iter().enumerate() {
+                        let constructor_name =
+                            emit_common::constuctor_name(index, &*class_type.name);
+
+                        let local_type = local_type!(@V name);
+
+                        let constructor =
+                            self.define_constructor(
+                                constructor,
+                                local_type,
+                            );
+
+                        self.provides_values.insert(constructor_name, constructor);
+                    }
+                });
+            }
+
+            _ => (),
         }
 
         let local_type = local_type!(@V name);
@@ -105,6 +130,25 @@ impl<'a> JsonOutput<'a> {
         });
 
         serde_json::to_string_pretty(&map)
+    }
+
+    fn define_constructor(
+        &self,
+        constructor: &FnType,
+        self_class_type: Value,
+    ) -> Value {
+        let params: Vec<Value> = constructor.params
+                    .iter()
+                    .map(|t| JsonOutput::in_place_type_to_value(t))
+                    .collect();
+
+        let return_type = self_class_type;
+
+        json!([
+            "arrow",
+            params,
+            return_type
+        ])
     }
 
     fn define_type(&mut self, typ: &Type) -> Value {
