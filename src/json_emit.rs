@@ -178,12 +178,13 @@ impl<'a> JsonOutput<'a> {
                     return opaque_type!(name);
                 });
 
-                let fields = fields
-                    .iter()
-                    .map(|(key, field_typ)| (key, JsonOutput::in_place_type_to_value(field_typ)))
-                    .collect::<Vec<_>>();
+                let mut map = Map::new();
+                for (key, field_typ) in fields.iter() {
+                   let field_typ = JsonOutput::in_place_type_to_value(field_typ);
+                   map.insert(key.to_string(), field_typ);
+                }
 
-                json!(["record", fields])
+                json!(["record", map])
             }
 
             Type::Literal {
