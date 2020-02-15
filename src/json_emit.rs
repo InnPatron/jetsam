@@ -171,8 +171,20 @@ impl<'a> JsonOutput<'a> {
 
             Type::Interface {
                 ref name,
+                ref fields,
                 ..
-            } => opaque_type!(name),
+            } => {
+                opt!(self.options, output_opaque_interfaces, {
+                    return opaque_type!(name);
+                });
+
+                let fields = fields
+                    .iter()
+                    .map(|(key, field_typ)| (key, JsonOutput::in_place_type_to_value(field_typ)))
+                    .collect::<Vec<_>>();
+
+                json!(["record", fields])
+            }
 
             Type::Literal {
                 ..

@@ -16,6 +16,7 @@ pub struct EmitOptions {
     pub output_file_stem: Option<String>,
     pub require_path: Option<String>,
     pub output_constructor_wrappers: bool,
+    pub output_opaque_interfaces: bool,
 }
 
 struct Context<'a> {

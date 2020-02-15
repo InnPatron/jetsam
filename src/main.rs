@@ -27,6 +27,7 @@ use swc_ecma_parser::Session;
 use clap::{Arg, App};
 
 const DEFAULT_OUTPUT_CONSTRUCTOR_WRAPPERS: &'static str = "true";
+const DEFAULT_OUTPUT_OPAQUE_INTERFACES: &'static str = "true";
 
 fn output_directory_validator(arg: String) -> Result<(), String> {
     if PathBuf::from(arg).is_dir() {
@@ -70,6 +71,12 @@ fn main() {
             .required(false)
             .default_value(DEFAULT_OUTPUT_CONSTRUCTOR_WRAPPERS)
             .validator(bool_validator))
+        .arg(Arg::with_name("OUTPUT OPAQUE INTERFACES")
+            .long("opaque-interfaces")
+            .takes_value(true)
+            .required(false)
+            .default_value(DEFAULT_OUTPUT_OPAQUE_INTERFACES)
+            .validator(bool_validator))
         .get_matches();
 
     let input_path =
@@ -87,8 +94,13 @@ fn main() {
     let output_constructor_wrappers =
         matches.value_of("OUTPUT CONTRUCTOR WRAPPERS")
         .expect("No output constructor wrapper");
-
     let output_constructor_wrappers = output_constructor_wrappers.parse::<bool>()
+        .expect("Failed validation");
+
+    let output_opaque_interfaces =
+        matches.value_of("OUTPUT OPAQUE INTERFACES")
+        .expect("No output constructor wrapper");
+    let output_opaque_interfaces = output_opaque_interfaces.parse::<bool>()
         .expect("Failed validation");
 
     let output_dir = PathBuf::from(output_dir);
@@ -146,6 +158,7 @@ Some(cm.clone()));
             require_path: require_path.map(|input| input.to_string()),
             output_file_stem: file_stem.map(|f| f.to_string()),
             output_constructor_wrappers,
+            output_opaque_interfaces,
         };
 
         match emit::emit(options, &output_dir, &cache.root, &typed_graph) {
