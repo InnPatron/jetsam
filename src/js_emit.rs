@@ -64,7 +64,7 @@ impl<'a> JsOutput<'a> {
         };
 
         let params = &list;
-        let body = format!("return new {}({});", class_name, list);
+        let body = format!("return new root.{}({});", class_name, list);
 
         format!("function {}({}) {{ {} }}", constructor_name, params, body)
     }
