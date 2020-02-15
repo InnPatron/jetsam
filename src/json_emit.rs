@@ -303,9 +303,8 @@ impl<'a> JsonOutput<'a> {
 
             Type::Void => json!("Nothing"),
 
-            Type::Object => {
-                todo!("Object primitive type");
-            }
+            // TODO: Better way to handle primitive 'object' type?
+            Type::Object => json!("Any"),
 
             Type::Any => json!("Any"),
 
