@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use super::type_structs::*;
 use super::emit::EmitOptions;
@@ -6,14 +6,14 @@ use super::emit_common;
 
 pub struct JsOutput<'a> {
     options: &'a EmitOptions,
-    overrides: HashMap<String, String>
+    overrides: IndexMap<String, String>
 }
 
 impl<'a> JsOutput<'a> {
     pub fn new(options: &'a EmitOptions) -> Self {
         JsOutput {
             options,
-            overrides: HashMap::new(),
+            overrides: IndexMap::new(),
         }
     }
 
