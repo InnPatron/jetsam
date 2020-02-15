@@ -82,7 +82,7 @@ impl<'a> JsOutput<'a> {
         );
 
         output.push_str(
-            &format!("module.exports = root.exports;\n\n")
+            &format!("module.exports = root;\n\n")
         );
 
         for (override_key, override_value) in self.overrides.into_iter() {
