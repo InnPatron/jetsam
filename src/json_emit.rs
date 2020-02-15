@@ -108,6 +108,12 @@ impl<'a> JsonOutput<'a> {
                 });
             }
 
+            typ @ Type::Interface { .. } => {
+                let actual_type = self.define_type(typ);
+                self.provides_aliases.insert(name.to_string(), actual_type);
+                return;
+            }
+
             _ => (),
         }
 
@@ -317,9 +323,9 @@ impl<'a> JsonOutput<'a> {
             Type::Void => json!("Nothing"),
 
             // TODO: Better way to handle primitive 'object' type?
-            Type::Object => json!("Any"),
+            Type::Object => json!("tany"),
 
-            Type::Any => json!("Any"),
+            Type::Any => json!("tany"),
 
             Type::Never => json!("tbot"),
 
@@ -332,7 +338,7 @@ impl<'a> JsonOutput<'a> {
             }
 
             // TODO: Union types default to Any
-            Type::Union => json!("Any"),
+            Type::Union => json!("tany"),
         }
     }
 }
