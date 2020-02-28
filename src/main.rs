@@ -1,28 +1,6 @@
-#[macro_use]
-mod macros;
-mod error;
-mod structures;
-mod type_structs;
-mod init_type_scope;
-mod type_construction;
-mod bind_init;
-mod bind_common;
-mod bind_graph_init;
-mod graph_reduce;
-mod typify_graph;
-mod emit;
-mod json_emit;
-mod js_emit;
-mod emit_common;
+mod generate;
 
-use std::sync::Arc;
 use std::path::PathBuf;
-
-use swc_common::{
-    errors::{ColorConfig, Handler},
-    SourceMap,
-};
-use swc_ecma_parser::Session;
 
 use clap::{Arg, App};
 
@@ -106,68 +84,13 @@ fn main() {
     let output_dir = PathBuf::from(output_dir);
     let input_path = PathBuf::from(input_path);
 
-    swc_common::GLOBALS.set(&swc_common::Globals::new(), move || {
-        let cm: Arc<SourceMap> = Default::default();
-        let handler =
-            Handler::with_tty_emitter(ColorConfig::Auto, true, false,
-Some(cm.clone()));
-
-        let session = Session {
-            handler: &handler,
-        };
-
-        let cache = match bind_init::init(cm.clone(), session, input_path) {
-            Ok(c) => c,
-
-            Err(e) => {
-                eprintln!("module cache error: {:?}", e);
-                std::process::exit(1);
-            }
-        };
-
-        let graph = match bind_graph_init::init(&cache) {
-            Ok(g) => g,
-
-            Err(e) => {
-                eprintln!("graph init error: {:?}", e);
-                std::process::exit(1);
-            }
-        };
-
-        let graph = match graph_reduce::reduce(graph) {
-            Ok(g) => g,
-
-            Err(e) => {
-                eprintln!("graph reduction error: {:?}", e);
-                std::process::exit(1);
-            }
-        };
-
-        let typed_graph = match typify_graph::typify(&cache, graph) {
-            Ok(g) => g,
-
-            Err(e) => {
-                eprintln!("typify error: {:?}", e);
-                std::process::exit(1);
-            }
-        };
-
-        let options = emit::EmitOptions {
-            json: true,
-            js: true,
-            require_path: require_path.map(|input| input.to_string()),
-            output_file_stem: file_stem.map(|f| f.to_string()),
-            output_constructor_wrappers,
-            output_opaque_interfaces,
-        };
-
-        match emit::emit(options, &output_dir, &cache.root, &typed_graph) {
-            Ok(..) => (),
-
-            Err(e) => {
-                eprintln!("json-emit error: {:?}", e);
-                std::process::exit(1);
-            }
-        }
-    });
+    let options = generate::GenOptions {
+        input_path,
+        require_path,
+        file_stem,
+        output_constructor_wrappers,
+        output_opaque_interfaces,
+        output_dir,
+    };
+    generate::gen(options);
 }
