@@ -22,6 +22,8 @@ macro_rules! opaque_record {
     }
 }
 
+
+/// ``` text
 /// datatype formats:
 ///     [ "data", name, [type-param-names], [variants], [methods] ]
 ///     [ "arrow", [params], return-type ]
@@ -45,6 +47,7 @@ macro_rules! opaque_record {
 /// "aliases": {
 ///     "local-type-name": ["local", "local-type-name"]
 /// }
+/// ```
 pub struct JsonOutput<'a> {
     anon_counter: u64,
     provides_values: Map<String, Value>,
