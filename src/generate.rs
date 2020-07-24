@@ -16,6 +16,7 @@ mod js_emit;
 mod emit_common;
 mod config;
 mod ts_flavor_detector;
+mod ts_flavor_compat;
 
 use std::sync::Arc;
 
@@ -28,6 +29,7 @@ use swc_ecma_parser::Session;
 pub use self::config::GenConfig;
 pub use self::config::EmitConfig;
 
+use crate::ts::TsFlavor;
 use crate::compile_opt;
 
 pub fn gen(options: compile_opt::CompileOpt) {
@@ -78,6 +80,16 @@ Some(cm.clone()));
         };
 
         let detected_ts = ts_flavor_detector::detect(&typed_graph);
+
+        let target_ts = TsFlavor::ts_num();
+
+        if let Err(e) = ts_flavor_compat::compatible(&detected_ts, &target_ts) {
+            eprintln!("Compatibility errors:");
+            for err in e {
+                eprintln!("\t{:?}", err);
+            }
+            std::process::exit(1);
+        }
 
         todo!("TS FLAVOR check");
 
