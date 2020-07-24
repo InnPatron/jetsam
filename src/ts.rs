@@ -1,5 +1,21 @@
+pub enum TsFlavor {
+    TsNum,
+    TsFull,
+    TsCustom(TsFeatures)
+}
+
+impl TsFlavor {
+    pub fn features(&self) -> TsFeatures {
+        match *self {
+            TsFlavor::TsNum => TsFeatures::ts_num(),
+            TsFlavor::TsFull => TsFeatures::all(),
+            TsFlavor::TsCustom(ref custom) => custom.clone(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Builder)]
-pub struct TsFlavor {
+pub struct TsFeatures {
     #[builder(default = "false")]
     pub number_type: bool,
 
@@ -67,11 +83,11 @@ pub struct TsFlavor {
 
 }
 
-impl TsFlavor {
+impl TsFeatures {
 
     // NOTE: Need to manually keep this in sync
     pub fn all() -> Self {
-        TsFlavorBuilder::default()
+        TsFeaturesBuilder::default()
             .number_type(true)
             .boolean_type(true)
             .string_type(true)
@@ -97,13 +113,13 @@ impl TsFlavor {
     }
 
     pub fn empty() -> Self {
-        TsFlavorBuilder::default()
+        TsFeaturesBuilder::default()
             .build()
             .expect("empty failed")
     }
 
     pub fn ts_num() -> Self {
-        TsFlavorBuilder::default()
+        TsFeaturesBuilder::default()
             .number_type(true)
             .fn_type(true)
             .allow_simple_records()
@@ -113,10 +129,10 @@ impl TsFlavor {
     }
 }
 
-impl TsFlavorBuilder {
+impl TsFeaturesBuilder {
 
     pub fn empty() -> Self {
-        TsFlavorBuilder::default()
+        TsFeaturesBuilder::default()
     }
 
     pub fn allow_simple_records(&mut self) -> &mut Self {

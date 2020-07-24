@@ -1,4 +1,4 @@
-use crate::ts::TsFlavor;
+use crate::ts::TsFeatures;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CompatError {
@@ -25,7 +25,7 @@ macro_rules! basic_check {
     }}
 }
 
-pub fn compatible(detected: &TsFlavor, target: &TsFlavor) -> Result<(), Vec<CompatError>> {
+pub fn compatible(detected: &TsFeatures, target: &TsFeatures) -> Result<(), Vec<CompatError>> {
     let mut errors = Vec::new();
 
     basic_check!(detected, target, number_type      @ LTE [CompatError::NumberType => errors]);

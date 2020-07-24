@@ -29,13 +29,13 @@ fn bool_validator(arg: String) -> Result<(), String> {
 fn construct_ts_flavor(arg: Option<&str>) -> Result<TsFlavor, String> {
 
     arg.map(|s| match s {
-        "ts-num" | "tsnum" | "NUM" => Ok(TsFlavor::ts_num()),
+        "ts-num" | "tsnum" | "NUM" => Ok(TsFlavor::TsNum),
 
-        "all" | "any" | "full" => Ok(TsFlavor::all()),
+        "all" | "any" | "full" => Ok(TsFlavor::TsFull),
 
         _ => Err(format!("Unknown TS flavor \"{}\"", s)),
 
-    }).unwrap_or(Ok(TsFlavor::all()))
+    }).unwrap_or(Ok(TsFlavor::TsFull))
 }
 
 fn main() {

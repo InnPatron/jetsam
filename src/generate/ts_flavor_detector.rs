@@ -1,6 +1,6 @@
 use swc_atoms::JsWord;
 
-use crate::ts::{ TsFlavorBuilder, TsFlavor };
+use crate::ts::{ TsFeaturesBuilder, TsFeatures };
 
 use super::structures::CanonPath;
 use super::typify_graph::{ ModuleGraph, ModuleNode };
@@ -13,9 +13,9 @@ macro_rules! basic_scan {
 
 }
 
-pub fn detect(graph: &ModuleGraph) -> TsFlavor {
+pub fn detect(graph: &ModuleGraph) -> TsFeatures {
 
-    let mut builder = TsFlavorBuilder::empty();
+    let mut builder = TsFeaturesBuilder::empty();
 
     let mut parent_types = Vec::new();
     // Go through the type graph
@@ -34,7 +34,7 @@ pub fn detect(graph: &ModuleGraph) -> TsFlavor {
 
 // TODO: Recursive type scanning is broken
 fn scan_type<'a, 'b, 'c>(
-    builder: &'a mut TsFlavorBuilder,
+    builder: &'a mut TsFeaturesBuilder,
     graph: &'b ModuleGraph,
     typ: &'b Type,
     parent_types: &'c mut Vec<(&'b JsWord, &'b CanonPath)> ) {
