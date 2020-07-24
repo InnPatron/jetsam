@@ -3,8 +3,9 @@ use std::path::Path;
 use indexmap::IndexMap;
 
 use crate::generate::type_structs::*;
-use crate::compile_opt::CompileOpt;
+use crate::generate::error::EmitError;
 use crate::generate::emit_common;
+use crate::compile_opt::CompileOpt;
 
 use super::JsEmitter;
 
@@ -75,7 +76,9 @@ impl<'a> JsEmitter for TsFullJsOutput<'a> {
         }
     }
 
-    fn finalize(self, current_module: &Path, default_require_path: String) -> String {
+    fn finalize(self, current_module: &Path, default_require_path: String)
+        -> Result<String, EmitError> {
+
         let mut output = String::new();
 
         let require_path = self.options.require_path
@@ -97,6 +100,6 @@ impl<'a> JsEmitter for TsFullJsOutput<'a> {
             );
         }
 
-        output
+        Ok(output)
     }
 }

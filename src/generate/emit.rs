@@ -15,7 +15,6 @@ use crate::generate::type_structs::Type;
 use crate::compile_opt::CompileOpt;
 
 pub trait JsonEmitter {
-
     fn export_type(&mut self, name: &str, typ: &Type);
     fn export_value(&mut self, name: &str, value_type: &Type);
     fn finalize(self, current_module: &Path) -> Result<String, EmitError>;
@@ -24,7 +23,7 @@ pub trait JsonEmitter {
 pub trait JsEmitter {
     fn handle_type(&mut self, name: &str, typ: &Type);
     fn handle_value(&mut self, name: &str, value_type: &Type);
-    fn finalize(self, current_module: &Path, default_require_path: String) -> String;
+    fn finalize(self, current_module: &Path, default_require_path: String) -> Result<String, EmitError>;
 }
 
 struct Context<JS: JsEmitter, JSON: JsonEmitter> {
@@ -128,7 +127,7 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
         let output = context.js_output
-            .finalize(root_path, default_require_path);
+            .finalize(root_path, default_require_path)?;
 
         file.write_all(output.as_bytes())
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
