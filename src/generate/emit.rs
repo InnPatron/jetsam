@@ -1,4 +1,3 @@
-mod ts_full;
 mod js_emit_full;
 mod json_emit_full;
 
