@@ -16,7 +16,17 @@ macro_rules! basic_scan {
 pub fn detect(graph: &ModuleGraph) -> TsFlavor {
 
     let mut builder = TsFlavorBuilder::empty();
-    todo!("Detect input TS flavor");
+
+    let mut parent_types = Vec::new();
+    // Go through the type graph
+    // And scan for the TS flavor
+    for (canon_path, node) in graph.nodes.iter() {
+
+        for rooted_type in node.rooted_export_types.values() {
+            scan_type(&mut builder, graph, rooted_type, &mut parent_types);
+            parent_types.clear();
+        }
+    }
 
     builder.build()
         .expect("TS detection failed")
