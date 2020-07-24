@@ -91,7 +91,17 @@ Some(cm.clone()));
             std::process::exit(1);
         }
 
-        match emit::emit(&options, &cache.root, &typed_graph) {
+        let result = match options.ts_flavor {
+            TsFlavor::TsNum => {
+                todo!();
+            }
+
+            TsFlavor::TsFull => emit::emit(&options, &cache.root, &typed_graph),
+
+            TsFlavor::TsCustom(..) => todo!("TsCustom"),
+        };
+
+        match result {
             Ok(..) => (),
 
             Err(e) => {
