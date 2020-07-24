@@ -25,10 +25,19 @@ pub struct TsFlavor {
     pub any_type: bool,
 
     #[builder(default = "false")]
+    pub void_type: bool,
+
+    #[builder(default = "false")]
     pub fn_type: bool,
 
     #[builder(default = "false")]
-    pub fn_declarations: bool,
+    pub null_type: bool,
+
+    #[builder(default = "false")]
+    pub undefined_type: bool,
+
+    #[builder(default = "false")]
+    pub never_type: bool,
 
     #[builder(default = "false")]
     pub interfaces: bool,
@@ -37,15 +46,25 @@ pub struct TsFlavor {
     pub interface_extension: bool,
 
     #[builder(default = "false")]
-    pub recursive_interface: bool,
+    pub recursive_type: bool,
 
     #[builder(default = "false")]
-    /// Ex: funciton foo (x: { a: number}) { .. }
+    /// Ex: function foo (x: { a: number}) { .. }
     /// => type annotation for x is a type literal
     pub type_literal: bool,
 
     #[builder(default = "false")]
+    /// Ex: interface Foo {
+    ///     brand: "FooBrand"
+    /// }
     pub literal_type: bool,
+
+    #[builder(default = "false")]
+    pub class_type: bool,
+
+    #[builder(default = "false")]
+    pub type_alias: bool,
+
 }
 
 impl TsFlavor {
@@ -61,7 +80,7 @@ impl TsFlavor {
             .number_type(true)
             .fn_type(true)
             .allow_simple_records()
-            .fn_declarations(true)
+            .fn_type(true)
             .build()
             .expect("ts_num failed")
     }
@@ -78,6 +97,6 @@ impl TsFlavorBuilder {
             .interfaces(true)
             .type_literal(true)
             .interface_extension(false)
-            .recursive_interface(false)
+            .recursive_type(false)
     }
 }
