@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate derive_builder;
+
 mod generate;
 mod ts;
 mod compile_opt;
