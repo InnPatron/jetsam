@@ -274,7 +274,7 @@ impl<'a> NodeInitSession<'a> {
                     buff.push(spec);
                 },
 
-                ExportSpecifier::Namespace(NamespaceExportSpecifier {
+                ExportSpecifier::Namespace(ExportNamespaceSpecifier {
                     ref span,
                     ..
                 }) => {
@@ -312,7 +312,7 @@ impl<'a> NodeInitSession<'a> {
                 for spec in specifiers {
 
                     match spec {
-                        ExportSpecifier::Named(NamedExportSpecifier {
+                        ExportSpecifier::Named(ExportNamedSpecifier {
                             ref orig,
                             exported: ref exported_as,
                             ..
@@ -341,7 +341,7 @@ impl<'a> NodeInitSession<'a> {
             None => {
                 for spec in specifiers {
                     match spec {
-                        ExportSpecifier::Named(NamedExportSpecifier {
+                        ExportSpecifier::Named(ExportNamedSpecifier {
                             ref orig,
                             exported: ref exported_as,
                             ..
@@ -505,15 +505,15 @@ impl<'a> NodeInitSession<'a> {
     fn handle_import_specifier(&mut self, source: &CanonPath, spec: &ImportSpecifier)
         -> Result<(), BindGenError> {
         match spec {
-            ImportSpecifier::Specific(ref specific) => {
+            ImportSpecifier::Named(ref named) => {
 
-                let src_key = specific
+                let src_key = named
                     .imported
                     .as_ref()
                     .map(|export_key| export_key.sym.clone())
-                    .unwrap_or(specific.local.sym.clone());
+                    .unwrap_or(named.local.sym.clone());
 
-                let as_key = specific.local.sym.clone();
+                let as_key = named.local.sym.clone();
 
                 self.import_edges.push(Import::Named {
                     source: source.clone(),
@@ -526,7 +526,7 @@ impl<'a> NodeInitSession<'a> {
                     as_key,
                 };
 
-                let import_key = specific.local.sym.clone();
+                let import_key = named.local.sym.clone();
                 self.scope_item(import_key, item, ScopeKind::ValueType);
 
                 Ok(())

@@ -209,8 +209,8 @@ impl<'a> Session<'a> {
                     let mut params = Vec::new();
                     for param in constructor.params.iter() {
                         let ann = match param {
-                            PatOrTsParamProp::Pat(ref pat) => ann_from_pat(pat),
-                            PatOrTsParamProp::TsParamProp(..) => todo!("TsParamProp"),
+                            ParamOrTsParamProp::Param(ref param) => ann_from_pat(&param.pat),
+                            ParamOrTsParamProp::TsParamProp(..) => todo!("TsParamProp"),
                         };
 
                         let param_typ = ann
@@ -263,7 +263,7 @@ impl<'a> Session<'a> {
             .unwrap_or(Type::Any);
 
         for param in function.params.iter() {
-            let ann = ann_from_pat(param);
+            let ann = ann_from_pat(&param.pat);
 
             let typ = ann
                 .map(|ann| self.type_from_ann(ann))

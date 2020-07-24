@@ -192,7 +192,7 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                     buff.push(spec);
                 },
 
-                ExportSpecifier::Namespace(NamespaceExportSpecifier {
+                ExportSpecifier::Namespace(ExportNamespaceSpecifier {
                     ref span,
                     ..
                 }) => {
@@ -227,7 +227,7 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
             None => {
                 for spec in specifiers {
                     match spec {
-                        ExportSpecifier::Named(NamedExportSpecifier {
+                        ExportSpecifier::Named(ExportNamedSpecifier {
                             ref orig,
                             exported: ref exported_as,
                             ..
@@ -339,15 +339,15 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
     fn handle_import_specifier(&mut self, source: &CanonPath, spec: &ImportSpecifier)
         -> Result<(), BindGenError> {
         match spec {
-            ImportSpecifier::Specific(ref specific) => {
+            ImportSpecifier::Named(ref named) => {
 
-                let src_key = specific
+                let src_key = named
                     .imported
                     .as_ref()
                     .map(|export_key| export_key.sym.clone())
-                    .unwrap_or(specific.local.sym.clone());
+                    .unwrap_or(named.local.sym.clone());
 
-                let as_key = specific.local.sym.clone();
+                let as_key = named.local.sym.clone();
 
                 let state = ItemStateT::Imported {
                     source: source.clone(),
@@ -355,7 +355,7 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                     as_key,
                 };
 
-                let import_key = specific.local.sym.clone();
+                let import_key = named.local.sym.clone();
                 self.scope_value(import_key, state);
 
                 Ok(())

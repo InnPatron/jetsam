@@ -73,15 +73,15 @@ impl<'a> InitSession<'a> {
     fn handle_import_specifier(&mut self, source: &CanonPath, spec: &ImportSpecifier)
         -> Result<(), BindGenError> {
         match spec {
-            ImportSpecifier::Specific(ref specific) => {
+            ImportSpecifier::Named(ref named) => {
 
-                let src_key = specific
+                let src_key = named
                     .imported
                     .as_ref()
                     .map(|export_key| export_key.sym.clone())
-                    .unwrap_or(specific.local.sym.clone());
+                    .unwrap_or(named.local.sym.clone());
 
-                let as_key = specific.local.sym.clone();
+                let as_key = named.local.sym.clone();
 
                 let item_state = ItemState::Imported {
                     source: source.clone(),
@@ -89,7 +89,7 @@ impl<'a> InitSession<'a> {
                     as_key,
                 };
 
-                let import_key = specific.local.sym.clone();
+                let import_key = named.local.sym.clone();
                 self.scope.insert(import_key, item_state);
 
                 Ok(())

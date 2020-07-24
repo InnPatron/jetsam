@@ -217,6 +217,8 @@ fn open_module<'a>(
             tsx: false,
             decorators: false,
             dynamic_import: false,
+            dts: true,                                  // TODO: Used to control .d.ts/.ts parsing
+            no_early_errors: false,
         }),
         JscTarget::Es2018,
         SourceFileInput::from(&*file_handle),
