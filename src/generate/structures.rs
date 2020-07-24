@@ -58,7 +58,7 @@ impl CanonPath {
 
     #[cfg(test)]
     pub fn mock(b: PathBuf) -> Self {
-        self(b)
+        CanonPath(b)
     }
 }
 
