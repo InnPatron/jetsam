@@ -69,6 +69,33 @@ pub struct TsFlavor {
 
 impl TsFlavor {
 
+    // NOTE: Need to manually keep this in sync
+    pub fn all() -> Self {
+        TsFlavorBuilder::default()
+            .number_type(true)
+            .boolean_type(true)
+            .string_type(true)
+            .array_type(true)
+            .tuple_type(true)
+            .explicit_enum_type(true)
+            .object_type(true)
+            .any_type(true)
+            .void_type(true)
+            .fn_type(true)
+            .null_type(true)
+            .undefined_type(true)
+            .never_type(true)
+            .interfaces(true)
+            .interface_extension(true)
+            .recursive_type(true)
+            .type_literal(true)
+            .literal_type(true)
+            .class_type(true)
+            .type_alias(true)
+            .build()
+            .expect("empty failed")
+    }
+
     pub fn empty() -> Self {
         TsFlavorBuilder::default()
             .build()
