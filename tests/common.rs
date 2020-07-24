@@ -37,7 +37,7 @@ impl TestEnv {
 
         let tmp_dir = {
             let tmp_dir =
-                env::temp_dir().join(TEST_DIR).join(name).join(&format!("{}", name));
+                env::temp_dir().join(TEST_DIR).join(name);
 
                 if tmp_dir.exists() {
                     nice_err(&tmp_dir, fs::remove_dir_all(&tmp_dir));
