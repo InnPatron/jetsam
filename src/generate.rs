@@ -14,9 +14,9 @@ mod emit;
 mod json_emit;
 mod js_emit;
 mod emit_common;
+mod config;
 
 use std::sync::Arc;
-use std::path::PathBuf;
 
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -24,16 +24,12 @@ use swc_common::{
 };
 use swc_ecma_parser::Session;
 
-pub struct GenOptions<'a> {
-    pub input_path: PathBuf,
-    pub require_path: Option<&'a str>,
-    pub file_stem: Option<&'a str>,
-    pub output_constructor_wrappers: bool,
-    pub output_opaque_interfaces: bool,
-    pub output_dir: PathBuf,
-}
+pub use self::config::GenConfig;
+pub use self::config::EmitConfig;
 
-pub fn gen(options: GenOptions) {
+use crate::compile_opt;
+
+pub fn gen(options: compile_opt::CompileOpt) {
     swc_common::GLOBALS.set(&swc_common::Globals::new(), move || {
         let cm: Arc<SourceMap> = Default::default();
         let handler =
@@ -44,7 +40,7 @@ Some(cm.clone()));
             handler: &handler,
         };
 
-        let cache = match bind_init::init(cm.clone(), session, options.input_path) {
+        let cache = match bind_init::init(cm.clone(), session, options.input_path.clone()) {
             Ok(c) => c,
 
             Err(e) => {
@@ -80,16 +76,7 @@ Some(cm.clone()));
             }
         };
 
-        let emit_options = emit::EmitOptions {
-            json: true,
-            js: true,
-            require_path: options.require_path.map(|input| input.to_string()),
-            output_file_stem: options.file_stem.map(|f| f.to_string()),
-            output_constructor_wrappers: options.output_constructor_wrappers,
-            output_opaque_interfaces: options.output_opaque_interfaces,
-        };
-
-        match emit::emit(emit_options, &options.output_dir, &cache.root, &typed_graph) {
+        match emit::emit(&options, &cache.root, &typed_graph) {
             Ok(..) => (),
 
             Err(e) => {

@@ -8,16 +8,9 @@ use super::json_emit::*;
 use super::js_emit::*;
 use super::error::EmitError;
 use super::typify_graph::ModuleGraph;
+use super::config::EmitConfig;
+use crate::compile_opt::CompileOpt;
 
-#[derive(Clone)]
-pub struct EmitOptions {
-    pub json: bool,
-    pub js: bool,
-    pub output_file_stem: Option<String>,
-    pub require_path: Option<String>,
-    pub output_constructor_wrappers: bool,
-    pub output_opaque_interfaces: bool,
-}
 
 struct Context<'a> {
     json_output: JsonOutput<'a>,
@@ -25,13 +18,14 @@ struct Context<'a> {
 }
 
 pub fn emit(
-    options: EmitOptions,
-    outdir: &Path,
+    options: &CompileOpt,
     root_module_path: &CanonPath,
     typed_graph: &ModuleGraph
 ) -> Result<(), EmitError> {
 
-    let file_name = options.output_file_stem
+    let outdir = &options.output_dir;
+
+    let file_name = options.file_stem
         .as_ref()
         .map(|f| std::ffi::OsStr::new(f))
         .unwrap_or_else(|| {
@@ -47,13 +41,13 @@ pub fn emit(
     };
 
     traverse(
-        &options,
+        options,
         root_module_path,
         typed_graph,
         &mut context,
     );
 
-    opt!(options, json, {
+    opt!(options.emit_config, json, {
 
         let json_output_path = {
             let mut output_path = outdir.to_owned();
@@ -78,7 +72,7 @@ pub fn emit(
 
     });
 
-    opt!(options, js, {
+    opt!(options.emit_config, js, {
 
         let js_output_path = {
             let mut output_path = outdir.to_owned();
@@ -115,7 +109,7 @@ pub fn emit(
 }
 
 fn traverse(
-    options: &EmitOptions,
+    options: &CompileOpt,
     root: &CanonPath,
     graph: &ModuleGraph,
     context: &mut Context,
@@ -134,7 +128,7 @@ fn traverse(
 
         let node = graph.nodes.get(node_path).unwrap();
 
-        opt!(options, json, {
+        opt!(options.emit_config, json, {
             for (export_key, typ) in node.rooted_export_types.iter() {
                 context.json_output.export_type(export_key, typ);
             }
@@ -145,7 +139,7 @@ fn traverse(
         });
 
 
-        opt!(options, js, {
+        opt!(options.emit_config, js, {
             for (export_key, typ) in node.rooted_export_types.iter() {
                 context.js_output.handle_type(export_key, typ);
             }

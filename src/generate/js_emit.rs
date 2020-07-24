@@ -1,16 +1,16 @@
 use indexmap::IndexMap;
 
 use super::type_structs::*;
-use super::emit::EmitOptions;
+use crate::compile_opt::CompileOpt;
 use super::emit_common;
 
 pub struct JsOutput<'a> {
-    options: &'a EmitOptions,
+    options: &'a CompileOpt<'a>,
     overrides: IndexMap<String, String>
 }
 
 impl<'a> JsOutput<'a> {
-    pub fn new(options: &'a EmitOptions) -> Self {
+    pub fn new(options: &'a CompileOpt<'a>) -> Self {
         JsOutput {
             options,
             overrides: IndexMap::new(),
@@ -24,7 +24,7 @@ impl<'a> JsOutput<'a> {
     pub fn handle_type(&mut self, name: &str, typ: &Type) {
         match typ {
             Type::Class(ref class_type) => {
-                opt!(self.options, output_constructor_wrappers, {
+                opt!(self.options.gen_config, output_constructor_wrappers, {
 
                     for (index, constructor) in class_type.constructors.iter().enumerate() {
 
@@ -75,7 +75,7 @@ impl<'a> JsOutput<'a> {
         let require_path = self.options.require_path
             .as_ref()
             .map(|p| p.clone())
-            .unwrap_or(default_require_path);
+            .unwrap_or(&default_require_path);
 
         output.push_str(
             &format!("const root = require(\"{}\");\n", require_path)

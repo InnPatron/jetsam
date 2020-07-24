@@ -1,4 +1,6 @@
 mod generate;
+mod ts;
+mod compile_opt;
 
 use std::path::PathBuf;
 
@@ -84,13 +86,27 @@ fn main() {
     let output_dir = PathBuf::from(output_dir);
     let input_path = PathBuf::from(input_path);
 
-    let options = generate::GenOptions {
+    let gen_config = generate::GenConfig {
+        output_constructor_wrappers,
+        output_opaque_interfaces,
+    };
+
+    let emit_config = generate::EmitConfig {
+        json: true,
+        js: true,
+    };
+
+    // TODO: Add flag for ts_flavor
+    let ts_flavor = ts::TsFlavor::ts_num();
+
+    let options = compile_opt::CompileOpt {
         input_path,
         require_path,
         file_stem,
-        output_constructor_wrappers,
-        output_opaque_interfaces,
         output_dir,
+        gen_config,
+        emit_config,
+        ts_flavor,
     };
     generate::gen(options);
 }

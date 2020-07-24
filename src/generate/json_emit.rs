@@ -2,8 +2,8 @@ use serde_json::{json, Map, Value};
 
 use serde_json::error::Error as JsonError;
 
+use crate::compile_opt::CompileOpt;
 use super::emit_common;
-use super::emit::EmitOptions;
 use super::type_structs::*;
 
 macro_rules! local_type {
@@ -50,11 +50,11 @@ pub struct JsonOutput<'a> {
     provides_values: Map<String, Value>,
     provides_aliases: Map<String, Value>,
     provides_datatypes: Map<String, Value>,
-    options: &'a EmitOptions,
+    options: &'a CompileOpt<'a>,
 }
 
 impl<'a> JsonOutput<'a> {
-    pub fn new(options: &'a EmitOptions) -> Self {
+    pub fn new(options: &'a CompileOpt<'a>) -> Self {
         JsonOutput {
             options,
             anon_counter: 0,
@@ -90,7 +90,7 @@ impl<'a> JsonOutput<'a> {
             }
 
             Type::Class(ref class_type) => {
-                opt!(self.options, output_constructor_wrappers, {
+                opt!(self.options.gen_config, output_constructor_wrappers, {
                     for (index, constructor) in class_type.constructors.iter().enumerate() {
                         let constructor_name =
                             emit_common::constuctor_name(index, &*class_type.name);
@@ -180,7 +180,7 @@ impl<'a> JsonOutput<'a> {
                 ref fields,
                 ..
             } => {
-                opt!(self.options, output_opaque_interfaces, {
+                opt!(self.options.gen_config, output_opaque_interfaces, {
                     return opaque_type!(name);
                 });
 
