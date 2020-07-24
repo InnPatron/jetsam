@@ -96,7 +96,7 @@ Some(cm.clone()));
                 todo!();
             }
 
-            TsFlavor::TsFull => emit::emit(&options, &cache.root, &typed_graph),
+            TsFlavor::TsFull => emit::ts_full_emit(&options, &cache.root, &typed_graph),
 
             TsFlavor::TsCustom(..) => todo!("TsCustom"),
         };
