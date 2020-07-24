@@ -50,6 +50,12 @@ pub struct TsFlavor {
 
 impl TsFlavor {
 
+    pub fn empty() -> Self {
+        TsFlavorBuilder::default()
+            .build()
+            .expect("empty failed")
+    }
+
     pub fn ts_num() -> Self {
         TsFlavorBuilder::default()
             .number_type(true)
