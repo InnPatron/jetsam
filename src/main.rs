@@ -9,6 +9,8 @@ use std::path::PathBuf;
 
 use clap::{Arg, App};
 
+use ts::TsFlavor;
+
 const DEFAULT_OUTPUT_CONSTRUCTOR_WRAPPERS: &'static str = "true";
 const DEFAULT_OUTPUT_OPAQUE_INTERFACES: &'static str = "true";
 
@@ -22,6 +24,18 @@ fn output_directory_validator(arg: String) -> Result<(), String> {
 
 fn bool_validator(arg: String) -> Result<(), String> {
     arg.parse::<bool>().map_err(|_| "Expected bool".to_string()).map(|_| ())
+}
+
+fn construct_ts_flavor(arg: Option<&str>) -> Result<TsFlavor, String> {
+
+    arg.map(|s| match s {
+        "ts-num" | "tsnum" | "NUM" => Ok(TsFlavor::ts_num()),
+
+        "all" | "any" | "full" => Ok(TsFlavor::all()),
+
+        _ => Err(format!("Unknown TS flavor \"{}\"", s)),
+
+    }).unwrap_or(Ok(TsFlavor::all()))
 }
 
 fn main() {
@@ -48,6 +62,11 @@ fn main() {
             .long("output-file-stem")
             .takes_value(true)
             .required(false))
+        .arg(Arg::with_name("TARGET TS FLAVOR")
+            .long("ts-flavor")
+            .short("tsf")
+            .takes_value(true)
+            .required(false))
         .arg(Arg::with_name("OUTPUT CONTRUCTOR WRAPPERS")
             .long("constructor-wrappers")
             .takes_value(true)
@@ -61,6 +80,15 @@ fn main() {
             .default_value(DEFAULT_OUTPUT_OPAQUE_INTERFACES)
             .validator(bool_validator))
         .get_matches();
+
+    let target_ts_flavor = match construct_ts_flavor(matches.value_of("TARGET TS FLAVOR")) {
+        Ok(ts_flavor) => ts_flavor,
+
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+    };
 
     let input_path =
         matches.value_of("INPUT").expect("No input root module");
@@ -99,9 +127,6 @@ fn main() {
         js: true,
     };
 
-    // TODO: Add flag for ts_flavor
-    let ts_flavor = ts::TsFlavor::ts_num();
-
     let options = compile_opt::CompileOpt {
         input_path,
         require_path,
@@ -109,7 +134,7 @@ fn main() {
         output_dir,
         gen_config,
         emit_config,
-        ts_flavor,
+        ts_flavor: target_ts_flavor,
     };
     generate::gen(options);
 }
