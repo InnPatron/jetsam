@@ -81,7 +81,7 @@ Some(cm.clone()));
 
         let detected_ts = ts_flavor_detector::detect(&typed_graph);
 
-        let target_ts = TsFlavor::ts_num();
+        let target_ts = options.ts_flavor.features();
 
         if let Err(e) = ts_flavor_compat::compatible(&detected_ts, &target_ts) {
             eprintln!("Compatibility errors:");
