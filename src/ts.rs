@@ -68,6 +68,11 @@ impl TsFlavor {
 }
 
 impl TsFlavorBuilder {
+
+    pub fn empty() -> Self {
+        TsFlavorBuilder::default()
+    }
+
     pub fn allow_simple_records(&mut self) -> &mut Self {
         self
             .interfaces(true)
