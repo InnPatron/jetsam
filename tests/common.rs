@@ -1,10 +1,10 @@
 //! Inspired by ripgrep (https://github.com/BurntSushi/ripgrep)
 
 use std::error;
-use std::io;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
+use std::io::{self, Write};
 use std::fs::{self, File};
 use std::thread;
 use std::time::Duration;
@@ -89,6 +89,21 @@ impl TestEnv {
             pyret_compiler_path,
             pyret_runtime_dir,
         }
+    }
+
+    pub fn create_tmp_dir<P: AsRef<Path>>(&self, path: P) {
+        let path = self.tmp_dir.join(path);
+        nice_err(&path, repeat(|| fs::create_dir_all(&path)));
+    }
+
+    pub fn create_tmp_file<P: AsRef<Path>>(&self, name: P, contents: &str) {
+        let path = self.tmp_dir.join(&name);
+        nice_err(&path, (||{
+            let path = self.tmp_dir.join(name);
+            let mut file = File::create(path)?;
+            file.write_all(contents.as_bytes())?;
+            file.flush()
+        })());
     }
 
     pub fn bin_cmd(&self) -> Command {
