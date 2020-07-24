@@ -3,8 +3,8 @@ use serde_json::{json, Map, Value};
 use serde_json::error::Error as JsonError;
 
 use crate::compile_opt::CompileOpt;
-use super::emit_common;
-use super::type_structs::*;
+use crate::generate::emit_common;
+use crate::generate::type_structs::*;
 
 macro_rules! local_type {
     ($name: expr) => {

@@ -11,8 +11,6 @@ mod bind_graph_init;
 mod graph_reduce;
 mod typify_graph;
 mod emit;
-mod json_emit;
-mod js_emit;
 mod emit_common;
 mod config;
 mod ts_flavor_detector;

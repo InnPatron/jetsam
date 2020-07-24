@@ -4,12 +4,13 @@ use std::fs::File;
 use std::io::Write;
 
 use crate::generate::structures::*;
-use crate::generate::json_emit::*;
-use crate::generate::js_emit::*;
 use crate::generate::error::EmitError;
 use crate::generate::typify_graph::ModuleGraph;
 use crate::generate::config::EmitConfig;
 use crate::compile_opt::CompileOpt;
+
+use super::json_emit_full::*;
+use super::js_emit_full::*;
 
 
 struct Context<'a> {

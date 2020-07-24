@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 
-use super::type_structs::*;
+use crate::generate::type_structs::*;
 use crate::compile_opt::CompileOpt;
-use super::emit_common;
+use crate::generate::emit_common;
 
 pub struct JsOutput<'a> {
     options: &'a CompileOpt<'a>,
