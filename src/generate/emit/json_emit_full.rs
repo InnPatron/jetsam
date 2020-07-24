@@ -1,10 +1,14 @@
-use serde_json::{json, Map, Value};
+use std::path::Path;
 
+use serde_json::{json, Map, Value};
 use serde_json::error::Error as JsonError;
 
 use crate::compile_opt::CompileOpt;
 use crate::generate::emit_common;
+use crate::generate::error::EmitError;
 use crate::generate::type_structs::*;
+
+use super::JsonEmitter;
 
 macro_rules! local_type {
     ($name: expr) => {
@@ -48,7 +52,7 @@ macro_rules! opaque_record {
 ///     "local-type-name": ["local", "local-type-name"]
 /// }
 /// ```
-pub struct JsonOutput<'a> {
+pub(super) struct TsFullJsonOutput<'a> {
     anon_counter: u64,
     provides_values: Map<String, Value>,
     provides_aliases: Map<String, Value>,
@@ -56,9 +60,9 @@ pub struct JsonOutput<'a> {
     options: &'a CompileOpt<'a>,
 }
 
-impl<'a> JsonOutput<'a> {
+impl<'a> TsFullJsonOutput<'a> {
     pub fn new(options: &'a CompileOpt<'a>) -> Self {
-        JsonOutput {
+        TsFullJsonOutput {
             options,
             anon_counter: 0,
             provides_values: Map::new(),
@@ -73,74 +77,6 @@ impl<'a> JsonOutput<'a> {
         self.anon_counter
     }
 
-    pub fn export_value(&mut self, name: &str, value_type: &Type) {
-        let value_type = JsonOutput::in_place_type_to_value(value_type);
-
-        self.provides_values.insert(name.to_string(), value_type);
-    }
-
-    pub fn export_type(&mut self, name: &str, typ: &Type) {
-
-        match typ {
-
-            Type::Alias {
-                ref name,
-                ref aliasing_type,
-            } => {
-
-                self.provides_aliases.insert(name.to_string(), local_type!(@V name));
-                return;
-            }
-
-            Type::Class(ref class_type) => {
-                opt!(self.options.gen_config, output_constructor_wrappers, {
-                    for (index, constructor) in class_type.constructors.iter().enumerate() {
-                        let constructor_name =
-                            emit_common::constuctor_name(index, &*class_type.name);
-
-                        let local_type = local_type!(@V name);
-
-                        let constructor =
-                            self.define_constructor(
-                                constructor,
-                                local_type,
-                            );
-
-                        self.provides_values.insert(constructor_name, constructor);
-                    }
-                });
-            }
-
-            typ @ Type::Interface { .. } => {
-                let actual_type = self.define_type(typ);
-                self.provides_aliases.insert(name.to_string(), actual_type);
-                return;
-            }
-
-            _ => (),
-        }
-
-        let local_type = local_type!(@V name);
-        let actual_type = self.define_type(typ);
-
-        self.provides_aliases.insert(name.to_string(), local_type);
-        self.provides_datatypes.insert(name.to_string(), actual_type);
-    }
-
-    pub fn finalize(self) -> Result<String, JsonError> {
-        let map = json!({
-            "requires": [],
-            "provides": {
-                "shorthands": { },
-                "values": self.provides_values,
-                "aliases": self.provides_aliases,
-                "datatypes": self.provides_datatypes,
-            }
-        });
-
-        serde_json::to_string_pretty(&map)
-    }
-
     fn define_constructor(
         &self,
         constructor: &FnType,
@@ -148,7 +84,7 @@ impl<'a> JsonOutput<'a> {
     ) -> Value {
         let params: Vec<Value> = constructor.params
                     .iter()
-                    .map(|t| JsonOutput::in_place_type_to_value(t))
+                    .map(|t| TsFullJsonOutput::in_place_type_to_value(t))
                     .collect();
 
         let return_type = self_class_type;
@@ -171,7 +107,7 @@ impl<'a> JsonOutput<'a> {
         match typ {
             Type::Fn {
                 ..
-            } => JsonOutput::in_place_type_to_value(typ),
+            } => TsFullJsonOutput::in_place_type_to_value(typ),
 
             Type::Class(ClassType {
                 ref name,
@@ -189,7 +125,7 @@ impl<'a> JsonOutput<'a> {
 
                 let mut map = Map::new();
                 for (key, field_typ) in fields.iter() {
-                   let field_typ = JsonOutput::in_place_type_to_value(field_typ);
+                   let field_typ = TsFullJsonOutput::in_place_type_to_value(field_typ);
                    map.insert(key.to_string(), field_typ);
                 }
 
@@ -238,11 +174,11 @@ impl<'a> JsonOutput<'a> {
             })=> {
                 let params: Vec<Value> = params
                     .iter()
-                    .map(|t| JsonOutput::in_place_type_to_value(t))
+                    .map(|t| TsFullJsonOutput::in_place_type_to_value(t))
                     .collect();
 
                 let return_type =
-                    JsonOutput::in_place_type_to_value(return_type);
+                    TsFullJsonOutput::in_place_type_to_value(return_type);
 
                 // [ "arrow", [params], return-type ]
                 json!([
@@ -283,7 +219,7 @@ impl<'a> JsonOutput<'a> {
             } => opaque_record!(),
 
             Type::UnsizedArray(ref e_type) => {
-                let e_type = JsonOutput::in_place_type_to_value(e_type);
+                let e_type = TsFullJsonOutput::in_place_type_to_value(e_type);
                 json!([
                     "tyapp",
                     {
@@ -301,7 +237,7 @@ impl<'a> JsonOutput<'a> {
 
             Type::Array(ref e_type, ref _size) => {
                 // TODO: Use size somehow
-                let e_type = JsonOutput::in_place_type_to_value(e_type);
+                let e_type = TsFullJsonOutput::in_place_type_to_value(e_type);
                 json!([
                     "tyapp",
                     {
@@ -343,5 +279,77 @@ impl<'a> JsonOutput<'a> {
             // TODO: Union types default to Any
             Type::Union => json!("tany"),
         }
+    }
+
+}
+
+impl<'a> JsonEmitter for TsFullJsonOutput<'a> {
+
+    fn export_value(&mut self, name: &str, value_type: &Type) {
+        let value_type = TsFullJsonOutput::in_place_type_to_value(value_type);
+
+        self.provides_values.insert(name.to_string(), value_type);
+    }
+
+    fn export_type(&mut self, name: &str, typ: &Type) {
+
+        match typ {
+
+            Type::Alias {
+                ref name,
+                ref aliasing_type,
+            } => {
+
+                self.provides_aliases.insert(name.to_string(), local_type!(@V name));
+                return;
+            }
+
+            Type::Class(ref class_type) => {
+                opt!(self.options.gen_config, output_constructor_wrappers, {
+                    for (index, constructor) in class_type.constructors.iter().enumerate() {
+                        let constructor_name =
+                            emit_common::constuctor_name(index, &*class_type.name);
+
+                        let local_type = local_type!(@V name);
+
+                        let constructor =
+                            self.define_constructor(
+                                constructor,
+                                local_type,
+                            );
+
+                        self.provides_values.insert(constructor_name, constructor);
+                    }
+                });
+            }
+
+            typ @ Type::Interface { .. } => {
+                let actual_type = self.define_type(typ);
+                self.provides_aliases.insert(name.to_string(), actual_type);
+                return;
+            }
+
+            _ => (),
+        }
+
+        let local_type = local_type!(@V name);
+        let actual_type = self.define_type(typ);
+
+        self.provides_aliases.insert(name.to_string(), local_type);
+        self.provides_datatypes.insert(name.to_string(), actual_type);
+    }
+
+    fn finalize(self, current_module: &Path) -> Result<String, EmitError> {
+        let map = json!({
+            "requires": [],
+            "provides": {
+                "shorthands": { },
+                "values": self.provides_values,
+                "aliases": self.provides_aliases,
+                "datatypes": self.provides_datatypes,
+            }
+        });
+
+        serde_json::to_string_pretty(&map).map_err(|e| EmitError::JsonError(current_module.to_owned(), e))
     }
 }

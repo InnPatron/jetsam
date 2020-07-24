@@ -1,45 +1,23 @@
+use std::path::Path;
+
 use indexmap::IndexMap;
 
 use crate::generate::type_structs::*;
 use crate::compile_opt::CompileOpt;
 use crate::generate::emit_common;
 
-pub struct JsOutput<'a> {
+use super::JsEmitter;
+
+pub(super) struct TsFullJsOutput<'a> {
     options: &'a CompileOpt<'a>,
     overrides: IndexMap<String, String>
 }
 
-impl<'a> JsOutput<'a> {
+impl<'a> TsFullJsOutput<'a> {
     pub fn new(options: &'a CompileOpt<'a>) -> Self {
-        JsOutput {
+        TsFullJsOutput {
             options,
             overrides: IndexMap::new(),
-        }
-    }
-
-    pub fn handle_value(&mut self, name: &str, value_type: &Type) {
-        // Do nothing for now
-    }
-
-    pub fn handle_type(&mut self, name: &str, typ: &Type) {
-        match typ {
-            Type::Class(ref class_type) => {
-                opt!(self.options.gen_config, output_constructor_wrappers, {
-
-                    for (index, constructor) in class_type.constructors.iter().enumerate() {
-
-                        let constructor_name =
-                            emit_common::constuctor_name(index, &*class_type.name);
-
-                        let string_constructor =
-                            self.build_constructor(&*class_type.name, &constructor_name, constructor);
-
-                        self.overrides.insert(constructor_name, string_constructor);
-                    }
-                });
-            }
-
-            _ => (),
         }
     }
 
@@ -68,8 +46,36 @@ impl<'a> JsOutput<'a> {
 
         format!("function {}({}) {{ {} }}", constructor_name, params, body)
     }
+}
 
-    pub fn finalize(self, default_require_path: String) -> String {
+impl<'a> JsEmitter for TsFullJsOutput<'a> {
+    fn handle_value(&mut self, name: &str, value_type: &Type) {
+        // Do nothing for now
+    }
+
+    fn handle_type(&mut self, name: &str, typ: &Type) {
+        match typ {
+            Type::Class(ref class_type) => {
+                opt!(self.options.gen_config, output_constructor_wrappers, {
+
+                    for (index, constructor) in class_type.constructors.iter().enumerate() {
+
+                        let constructor_name =
+                            emit_common::constuctor_name(index, &*class_type.name);
+
+                        let string_constructor =
+                            self.build_constructor(&*class_type.name, &constructor_name, constructor);
+
+                        self.overrides.insert(constructor_name, string_constructor);
+                    }
+                });
+            }
+
+            _ => (),
+        }
+    }
+
+    fn finalize(self, current_module: &Path, default_require_path: String) -> String {
         let mut output = String::new();
 
         let require_path = self.options.require_path
