@@ -22,6 +22,7 @@ pub fn detect(graph: &ModuleGraph) -> TsFlavor {
         .expect("TS detection failed")
 }
 
+// TODO: Recursive type scanning is broken
 fn scan_type<'a, 'b, 'c>(
     builder: &'a mut TsFlavorBuilder,
     graph: &'b ModuleGraph,
