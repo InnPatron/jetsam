@@ -91,8 +91,6 @@ Some(cm.clone()));
             std::process::exit(1);
         }
 
-        todo!("TS FLAVOR check");
-
         match emit::emit(&options, &cache.root, &typed_graph) {
             Ok(..) => (),
 
