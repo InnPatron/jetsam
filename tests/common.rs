@@ -3,7 +3,7 @@
 use std::error;
 use std::env;
 use std::path::{Path, PathBuf};
-use std::process::{self, Command};
+use std::process::{self, Command, Stdio};
 use std::io::{self, Write};
 use std::fs::{self, File};
 use std::thread;
@@ -112,10 +112,26 @@ impl TestEnv {
         })());
     }
 
-    pub fn bin_cmd(&self) -> Command {
+    pub fn jetsam_cmd(&self) -> Command {
         let jetsam = self.root.join(format!("../jetsam{}", env::consts::EXE_SUFFIX));
 
         Command::new(jetsam)
+    }
+
+    pub fn jetsam_build_cmd<S: AsRef<Path>>(&self, input_path: S, output_dir: S) -> Command {
+        let mut cmd = self.jetsam_cmd();
+
+        let input_path = self.tmp_dir.join(input_path);
+        let output_dir = self.tmp_dir.join(output_dir);
+
+        cmd
+            .stderr(Stdio::inherit())
+            .arg("-i")
+            .arg(input_path)
+            .arg("-o")
+            .arg(output_dir);
+
+        cmd
     }
 
     pub fn pyret_cmd(&self) -> Command {
