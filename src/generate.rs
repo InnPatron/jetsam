@@ -15,6 +15,7 @@ mod json_emit;
 mod js_emit;
 mod emit_common;
 mod config;
+mod ts_flavor_detector;
 
 use std::sync::Arc;
 
@@ -75,6 +76,10 @@ Some(cm.clone()));
                 std::process::exit(1);
             }
         };
+
+        let detected_ts = ts_flavor_detector::detect(&typed_graph);
+
+        todo!("TS FLAVOR check");
 
         match emit::emit(&options, &cache.root, &typed_graph) {
             Ok(..) => (),
