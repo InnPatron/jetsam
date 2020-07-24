@@ -20,9 +20,15 @@ pub struct TestEnv {
 
     root: PathBuf,
 
+    /// Determined by environment variable "TMPDIR"
     tmp_dir: PathBuf,
 
+    /// Determined by environment variable contained by constant PYRET_COMPILER_DIR
     pyret_compiler_path: PathBuf,
+
+    /// Determined by environment variable contained by constant PYRET_RUNTIME_DIR.
+    /// If that variable is not set, calculate it from the variable denoted by constant PYRET_COMPILER_DIR
+    ///     by appending "../runtime"
     pyret_runtime_dir: PathBuf,
 }
 
