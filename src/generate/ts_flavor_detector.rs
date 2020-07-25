@@ -22,6 +22,11 @@ pub fn detect(graph: &ModuleGraph) -> TsFeatures {
     // And scan for the TS flavor
     for (canon_path, node) in graph.nodes.iter() {
 
+        for rooted_value in node.rooted_export_values.values() {
+            scan_type(&mut builder, graph, rooted_value, &mut parent_types);
+            parent_types.clear();
+        }
+
         for rooted_type in node.rooted_export_types.values() {
             scan_type(&mut builder, graph, rooted_type, &mut parent_types);
             parent_types.clear();
