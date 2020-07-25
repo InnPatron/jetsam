@@ -118,7 +118,7 @@ impl TestEnv {
         Command::new(jetsam)
     }
 
-    pub fn jetsam_build_cmd<S: AsRef<Path>>(&self, input_path: S, output_dir: S) -> Command {
+    pub fn jetsam_build_cmd<S1: AsRef<Path>, S2: AsRef<Path>>(&self, input_path: S1, output_dir: S2) -> Command {
         let mut cmd = self.jetsam_cmd();
 
         let input_path = self.tmp_dir.join(input_path);
