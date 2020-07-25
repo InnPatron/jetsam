@@ -159,26 +159,26 @@ fn traverse<JS: JsEmitter, JSON: JsonEmitter>(
 
         let node = graph.nodes.get(node_path).unwrap();
 
-        opt!(options.emit_config, json, {
-            for (export_key, typ) in node.rooted_export_types.iter() {
+        for (export_key, typ) in node.rooted_export_types.iter() {
+            opt!(options.emit_config, json, {
                 context.json_output.export_type(node.path.as_path(), export_key, typ);
-            }
-
-            for (export_key, typ) in node.rooted_export_values.iter() {
-                context.json_output.export_value(node.path.as_path(), export_key, typ);
-            }
-        });
-
-
-        opt!(options.emit_config, js, {
-            for (export_key, typ) in node.rooted_export_types.iter() {
+            });
+            opt!(options.emit_config, js, {
                 context.js_output.handle_type(node.path.as_path(), export_key, typ);
-            }
+            });
+        }
 
-            for (export_key, typ) in node.rooted_export_values.iter() {
+        for (export_key, typ) in node.rooted_export_values.iter() {
+            opt!(options.emit_config, json, {
+                context.json_output.export_value(node.path.as_path(), export_key, typ);
+            });
+
+
+            opt!(options.emit_config, js, {
                 context.js_output.handle_value(node.path.as_path(), export_key, typ);
-            }
-        });
+            });
+        }
+
 
         let edges = graph.export_edges.get(node_path).unwrap();
 
