@@ -1,8 +1,8 @@
 mod ts_full_js_emit;
 mod ts_full_json_emit;
 
-mod js_emit_ts_num;
-mod json_emit_ts_num;
+mod ts_num_js_emit;
+mod ts_num_json_emit;
 
 use std::collections::HashSet;
 use std::path::Path;
