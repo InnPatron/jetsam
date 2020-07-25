@@ -77,7 +77,7 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
         root_module_path,
         typed_graph,
         &mut context,
-    );
+    )?;
 
     opt!(options.emit_config, json, {
 
@@ -144,7 +144,7 @@ fn traverse<JS: JsEmitter, JSON: JsonEmitter>(
     root: &CanonPath,
     graph: &ModuleGraph,
     context: &mut Context<JS, JSON>,
-) {
+) -> Result<(), EmitError> {
     let mut visited: HashSet<&CanonPath> = HashSet::new();
 
     let mut stack: Vec<&CanonPath> = vec![root];
@@ -161,21 +161,21 @@ fn traverse<JS: JsEmitter, JSON: JsonEmitter>(
 
         for (export_key, typ) in node.rooted_export_types.iter() {
             opt!(options.emit_config, json, {
-                context.json_output.export_type(node.path.as_path(), export_key, typ);
+                context.json_output.export_type(node.path.as_path(), export_key, typ)?;
             });
             opt!(options.emit_config, js, {
-                context.js_output.handle_type(node.path.as_path(), export_key, typ);
+                context.js_output.handle_type(node.path.as_path(), export_key, typ)?;
             });
         }
 
         for (export_key, typ) in node.rooted_export_values.iter() {
             opt!(options.emit_config, json, {
-                context.json_output.export_value(node.path.as_path(), export_key, typ);
+                context.json_output.export_value(node.path.as_path(), export_key, typ)?;
             });
 
 
             opt!(options.emit_config, js, {
-                context.js_output.handle_value(node.path.as_path(), export_key, typ);
+                context.js_output.handle_value(node.path.as_path(), export_key, typ)?;
             });
         }
 
@@ -186,4 +186,6 @@ fn traverse<JS: JsEmitter, JSON: JsonEmitter>(
             stack.push(edge.export_source());
         }
     }
+
+    Ok(())
 }
