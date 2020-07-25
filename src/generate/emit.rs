@@ -1,6 +1,9 @@
 mod js_emit_full;
 mod json_emit_full;
 
+mod js_emit_ts_num;
+mod json_emit_ts_num;
+
 use std::collections::HashSet;
 use std::path::Path;
 use std::fs::File;
