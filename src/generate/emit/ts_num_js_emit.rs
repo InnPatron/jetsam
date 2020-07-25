@@ -38,7 +38,7 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
         }
     }
 
-    fn handle_type(&mut self, current_module: &Path, name: &str, typ: &Type)
+    fn handle_type(&mut self, _current_module: &Path, _name: &str, _typ: &Type)
         -> Result<(), EmitError> {
 
         Ok(())
