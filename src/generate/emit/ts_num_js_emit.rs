@@ -9,68 +9,30 @@ use crate::compile_opt::CompileOpt;
 
 use super::JsEmitter;
 
-pub(super) struct TsFullJsOutput<'a> {
+pub(super) struct TsNumJsOutput<'a> {
     options: &'a CompileOpt<'a>,
     overrides: IndexMap<String, String>
 }
 
-impl<'a> TsFullJsOutput<'a> {
+impl<'a> TsNumJsOutput<'a> {
     pub fn new(options: &'a CompileOpt<'a>) -> Self {
-        TsFullJsOutput {
+        TsNumJsOutput {
             options,
             overrides: IndexMap::new(),
         }
     }
-
-    fn build_constructor(&self,
-        class_name: &str,
-        constructor_name: &str,
-        constructor: &FnType
-    ) -> String {
-
-        let list = {
-            let mut params = String::new();
-            for (index, _) in constructor.params.iter().enumerate() {
-                params.push('p');
-                params.push_str(&index.to_string());
-
-                if index < constructor.params.len() - 1 {
-                    params.push(',');
-                }
-            }
-
-            params
-        };
-
-        let params = &list;
-        let body = format!("return new root.{}({});", class_name, list);
-
-        format!("function {}({}) {{ {} }}", constructor_name, params, body)
-    }
 }
 
-impl<'a> JsEmitter for TsFullJsOutput<'a> {
+impl<'a> JsEmitter for TsNumJsOutput<'a> {
     fn handle_value(&mut self, name: &str, value_type: &Type) {
         // Do nothing for now
     }
 
     fn handle_type(&mut self, name: &str, typ: &Type) {
         match typ {
-            Type::Class(ref class_type) => {
-                opt!(self.options.gen_config, output_constructor_wrappers, {
+            Type::Fn(ref fn_type) => todo!("Wrap around number functions"),
 
-                    for (index, constructor) in class_type.constructors.iter().enumerate() {
-
-                        let constructor_name =
-                            emit_common::constuctor_name(index, &*class_type.name);
-
-                        let string_constructor =
-                            self.build_constructor(&*class_type.name, &constructor_name, constructor);
-
-                        self.overrides.insert(constructor_name, string_constructor);
-                    }
-                });
-            }
+            Type::Number => todo!("Wrap getter around number vars"),
 
             _ => (),
         }
