@@ -385,9 +385,8 @@ impl<'a> Session<'a> {
                 ref span,
                 ref params,
                 ref type_params,
-                ref type_ann,
+                type_ann: ref return_ann,
             })) => {
-                // TODO: Is type_ann the return type?
 
                 let mut new_params = Vec::new();
                 for param in params {
@@ -401,9 +400,11 @@ impl<'a> Session<'a> {
                     new_params.push(typ);
                 }
 
+                let return_type = self.type_from_ann(return_ann)?;
+
                 Ok(Type::Fn(FnType {
                     params: new_params,
-                    return_type: Box::new(Type::Any),
+                    return_type: Box::new(return_type),
                 }))
             },
 
