@@ -9,6 +9,15 @@ use crate::compile_opt::CompileOpt;
 
 use super::JsEmitter;
 
+const C_TS_NUMBER_PY_NUMBER: &'static str = "C_ts_number_py_number";
+const C_PY_NUMBER_TS_NUMBER: &'static str = "C_py_number_ty_number";
+
+macro_rules! root_value {
+    ($i: expr) => {
+        format!("root[\"{}\"]", $i)
+    }
+}
+
 pub(super) struct TsNumJsOutput<'a> {
     options: &'a CompileOpt<'a>,
     overrides: IndexMap<String, String>
@@ -21,6 +30,96 @@ impl<'a> TsNumJsOutput<'a> {
             overrides: IndexMap::new(),
         }
     }
+
+    fn c_ts_number_py_number(&self, binding: &str) -> String {
+        format!("{}({})", C_TS_NUMBER_PY_NUMBER, binding)
+    }
+
+    fn c_py_number_ts_number(&self, binding: &str) -> String {
+        format!("{}({})", C_PY_NUMBER_TS_NUMBER, binding)
+    }
+
+    fn c_ts_fn_py_fn(&self, fn_type: &FnType, binding: &str) -> String {
+        let mut header = "function(".to_string();
+        let mut body = "".to_string();
+        let mut result = format!("let _result = {}(", binding);
+        let result_id = "_result";
+
+        for (index, param_type) in fn_type.params.iter().enumerate() {
+            let param_id = format!("_{}", index);
+            header.push_str(&param_id);
+            header.push(',');
+
+            result.push_str(&param_id);
+            result.push(',');
+
+            let converted = match param_type {
+                Type::Fn(ref inner_fn_type) => self.c_py_fn_ts_fn(inner_fn_type, &param_id),
+
+                Type::Number => self.c_py_number_ts_number(&param_id),
+
+                ref t => unreachable!("c_ts_fn_py_fn: {} {:?} (param {})", binding, t, index),
+
+            };
+
+            body.push_str(&format!("{} = {};\n", param_id, converted));
+        }
+        header.push(')');
+
+        result.push(')');
+        result.push(';');
+
+        let return_conversion = match *fn_type.return_type {
+            Type::Fn(ref fn_type) => self.c_ts_fn_py_fn(fn_type, result_id),
+
+            Type::Number => self.c_ts_number_py_number(result_id),
+
+            ref t => unreachable!("c_ts_fn_py_fn: {} {:?} (return)", binding, t),
+        };
+
+        format!("{} {{\n{}{}\nreturn {};}}", header, body, result, return_conversion)
+    }
+
+    fn c_py_fn_ts_fn(&self, fn_type: &FnType, binding: &str) -> String {
+        let mut header = "function(".to_string();
+        let mut body = "".to_string();
+        let mut result = format!("let _result = {}(", binding);
+        let result_id = "_result";
+
+        for (index, param_type) in fn_type.params.iter().enumerate() {
+            let param_id = format!("_{}", index);
+            header.push_str(&param_id);
+            header.push(',');
+
+            result.push_str(&param_id);
+            result.push(',');
+
+            let converted = match param_type {
+                Type::Fn(ref inner_fn_type) => self.c_ts_fn_py_fn(inner_fn_type, &param_id),
+
+                Type::Number => self.c_ts_number_py_number(&param_id),
+
+                ref t => unreachable!("c_py_fn_ts_fn: {} {:?} (param {})", binding, t, index),
+
+            };
+
+            body.push_str(&format!("{} = {};\n", param_id, converted));
+        }
+        header.push(')');
+
+        result.push(')');
+        result.push(';');
+
+        let return_conversion = match *fn_type.return_type {
+            Type::Fn(ref fn_type) => self.c_py_fn_ts_fn(fn_type, result_id),
+
+            Type::Number => self.c_py_number_ts_number(result_id),
+
+            ref t => unreachable!("c_py_fn_ts_fn: {} {:?} (return)", binding, t),
+        };
+
+        format!("{} {{\n{}{}\nreturn {};}}", header, body, result, return_conversion)
+    }
 }
 
 impl<'a> JsEmitter for TsNumJsOutput<'a> {
@@ -28,8 +127,20 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
         -> Result<(), EmitError> {
 
         match value_type {
-            Type::Number => todo!("Wrap getter around number vars"),
-            Type::Fn(..) => todo!("Wrap around number functions"),
+            Type::Number => {
+                let value = self.c_ts_number_py_number(&root_value!(name));
+                let getter = format!("function() {{ return {}; }}", &value);
+
+                self.overrides.insert(name.to_string(), getter);
+
+                Ok(())
+            }
+
+            Type::Fn(ref fn_type) => {
+                let value = self.c_ts_fn_py_fn(fn_type, &root_value!(name));
+                self.overrides.insert(name.to_string(), value);
+                Ok(())
+            }
 
             _ => Err(EmitError::Misc(
                     current_module.to_owned(),
