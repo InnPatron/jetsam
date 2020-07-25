@@ -100,7 +100,7 @@ impl<'a> TsNumJsonOutput<'a> {
                     .collect::<Result<Vec<_>, _>>()?;
 
                 let return_type =
-                    TsNumJsonOutput::in_place_type_to_value(return_type);
+                    TsNumJsonOutput::in_place_type_to_value(return_type)?;
 
                 // [ "arrow", [params], return-type ]
                 Ok(json!([
