@@ -285,13 +285,15 @@ impl<'a> TsFullJsonOutput<'a> {
 
 impl<'a> JsonEmitter for TsFullJsonOutput<'a> {
 
-    fn export_value(&mut self, name: &str, value_type: &Type) {
+    fn export_value(&mut self, name: &str, value_type: &Type) -> Result<(), EmitError> {
         let value_type = TsFullJsonOutput::in_place_type_to_value(value_type);
 
         self.provides_values.insert(name.to_string(), value_type);
+
+        Ok(())
     }
 
-    fn export_type(&mut self, name: &str, typ: &Type) {
+    fn export_type(&mut self, name: &str, typ: &Type) -> Result<(), EmitError> {
 
         match typ {
 
@@ -301,7 +303,7 @@ impl<'a> JsonEmitter for TsFullJsonOutput<'a> {
             } => {
 
                 self.provides_aliases.insert(name.to_string(), local_type!(@V name));
-                return;
+                return Ok(());
             }
 
             Type::Class(ref class_type) => {
@@ -326,7 +328,8 @@ impl<'a> JsonEmitter for TsFullJsonOutput<'a> {
             typ @ Type::Interface { .. } => {
                 let actual_type = self.define_type(typ);
                 self.provides_aliases.insert(name.to_string(), actual_type);
-                return;
+
+                return Ok(());
             }
 
             _ => (),
@@ -337,6 +340,8 @@ impl<'a> JsonEmitter for TsFullJsonOutput<'a> {
 
         self.provides_aliases.insert(name.to_string(), local_type);
         self.provides_datatypes.insert(name.to_string(), actual_type);
+
+        Ok(())
     }
 
     fn finalize(self, current_module: &Path) -> Result<String, EmitError> {

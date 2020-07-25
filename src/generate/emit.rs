@@ -17,14 +17,14 @@ use crate::generate::type_structs::Type;
 use crate::compile_opt::CompileOpt;
 
 pub trait JsonEmitter {
-    fn export_type(&mut self, name: &str, typ: &Type);
-    fn export_value(&mut self, name: &str, value_type: &Type);
+    fn export_type(&mut self, name: &str, typ: &Type) -> Result<(), EmitError>;
+    fn export_value(&mut self, name: &str, value_type: &Type) -> Result<(), EmitError>;
     fn finalize(self, current_module: &Path) -> Result<String, EmitError>;
 }
 
 pub trait JsEmitter {
-    fn handle_type(&mut self, name: &str, typ: &Type);
-    fn handle_value(&mut self, name: &str, value_type: &Type);
+    fn handle_type(&mut self, name: &str, typ: &Type) -> Result<(), EmitError>;
+    fn handle_value(&mut self, name: &str, value_type: &Type) -> Result<(), EmitError>;
     fn finalize(self, current_module: &Path, default_require_path: String) -> Result<String, EmitError>;
 }
 
