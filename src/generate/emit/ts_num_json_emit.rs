@@ -127,7 +127,8 @@ impl<'a> TsNumJsonOutput<'a> {
 
 impl<'a> JsonEmitter for TsNumJsonOutput<'a> {
 
-    fn export_value(&mut self, name: &str, value_type: &Type) -> Result<(), EmitError> {
+    fn export_value(&mut self, current_module: &Path, name: &str, value_type: &Type)
+        -> Result<(), EmitError> {
         let value_type = TsNumJsonOutput::in_place_type_to_value(value_type);
 
         self.provides_values.insert(name.to_string(), value_type);
@@ -135,7 +136,8 @@ impl<'a> JsonEmitter for TsNumJsonOutput<'a> {
         Ok(())
     }
 
-    fn export_type(&mut self, name: &str, typ: &Type) -> Result<(), EmitError> {
+    fn export_type(&mut self, current_module: &Path, name: &str, typ: &Type)
+        -> Result<(), EmitError> {
 
         let local_type = local_type!(@V name);
         let actual_type = self.define_type(typ);

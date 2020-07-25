@@ -17,14 +17,14 @@ use crate::generate::type_structs::Type;
 use crate::compile_opt::CompileOpt;
 
 pub trait JsonEmitter {
-    fn export_type(&mut self, name: &str, typ: &Type) -> Result<(), EmitError>;
-    fn export_value(&mut self, name: &str, value_type: &Type) -> Result<(), EmitError>;
+    fn export_type(&mut self, current_module: &Path, name: &str, typ: &Type) -> Result<(), EmitError>;
+    fn export_value(&mut self, current_module: &Path, name: &str, value_type: &Type) -> Result<(), EmitError>;
     fn finalize(self, current_module: &Path) -> Result<String, EmitError>;
 }
 
 pub trait JsEmitter {
-    fn handle_type(&mut self, name: &str, typ: &Type) -> Result<(), EmitError>;
-    fn handle_value(&mut self, name: &str, value_type: &Type) -> Result<(), EmitError>;
+    fn handle_type(&mut self, current_module: &Path, name: &str, typ: &Type) -> Result<(), EmitError>;
+    fn handle_value(&mut self, current_module: &Path, name: &str, value_type: &Type) -> Result<(), EmitError>;
     fn finalize(self, current_module: &Path, default_require_path: String) -> Result<String, EmitError>;
 }
 
@@ -161,22 +161,22 @@ fn traverse<JS: JsEmitter, JSON: JsonEmitter>(
 
         opt!(options.emit_config, json, {
             for (export_key, typ) in node.rooted_export_types.iter() {
-                context.json_output.export_type(export_key, typ);
+                context.json_output.export_type(node.path.as_path(), export_key, typ);
             }
 
             for (export_key, typ) in node.rooted_export_values.iter() {
-                context.json_output.export_value(export_key, typ);
+                context.json_output.export_value(node.path.as_path(), export_key, typ);
             }
         });
 
 
         opt!(options.emit_config, js, {
             for (export_key, typ) in node.rooted_export_types.iter() {
-                context.js_output.handle_type(export_key, typ);
+                context.js_output.handle_type(node.path.as_path(), export_key, typ);
             }
 
             for (export_key, typ) in node.rooted_export_values.iter() {
-                context.js_output.handle_value(export_key, typ);
+                context.js_output.handle_value(node.path.as_path(), export_key, typ);
             }
         });
 

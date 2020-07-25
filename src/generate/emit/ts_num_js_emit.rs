@@ -24,12 +24,14 @@ impl<'a> TsNumJsOutput<'a> {
 }
 
 impl<'a> JsEmitter for TsNumJsOutput<'a> {
-    fn handle_value(&mut self, name: &str, value_type: &Type) -> Result<(), EmitError>{
+    fn handle_value(&mut self, current_module: &Path, name: &str, value_type: &Type)
+        -> Result<(), EmitError> {
         // Do nothing for now
         Ok(())
     }
 
-    fn handle_type(&mut self, name: &str, typ: &Type) -> Result<(), EmitError> {
+    fn handle_type(&mut self, current_module: &Path, name: &str, typ: &Type)
+        -> Result<(), EmitError> {
         match typ {
             Type::Fn(ref fn_type) => todo!("Wrap around number functions"),
 

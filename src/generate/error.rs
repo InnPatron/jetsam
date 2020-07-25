@@ -39,4 +39,5 @@ pub enum UnsupportedFeature {
 pub enum EmitError {
     IoError(PathBuf, IoError),
     JsonError(PathBuf, JsonError),
+    Misc(PathBuf, String),
 }
