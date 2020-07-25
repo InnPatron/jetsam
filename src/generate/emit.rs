@@ -1,5 +1,5 @@
-mod js_emit_full;
-mod json_emit_full;
+mod ts_full_js_emit;
+mod ts_full_json_emit;
 
 mod js_emit_ts_num;
 mod json_emit_ts_num;
@@ -38,8 +38,8 @@ pub fn ts_full_emit(
     root_module_path: &CanonPath,
     typed_graph: &ModuleGraph,
 ) -> Result<(), EmitError> {
-    use self::js_emit_full::TsFullJsOutput as JsEmitter;
-    use self::json_emit_full::TsFullJsonOutput as JsonEmitter;
+    use self::ts_full_js_emit::TsFullJsOutput as JsEmitter;
+    use self::ts_full_json_emit::TsFullJsonOutput as JsonEmitter;
 
     let js_emitter = JsEmitter::new(options);
     let json_emitter = JsonEmitter::new(options);
