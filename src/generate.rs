@@ -90,9 +90,7 @@ Some(cm.clone()));
         }
 
         let result = match options.ts_flavor {
-            TsFlavor::TsNum => {
-                todo!();
-            }
+            TsFlavor::TsNum => emit::ts_num_emit(&options, &cache.root, &typed_graph),
 
             TsFlavor::TsFull => emit::ts_full_emit(&options, &cache.root, &typed_graph),
 

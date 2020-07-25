@@ -33,6 +33,20 @@ struct Context<JS: JsEmitter, JSON: JsonEmitter> {
     js_output: JS,
 }
 
+pub fn ts_num_emit(
+    options: &CompileOpt,
+    root_module_path: &CanonPath,
+    typed_graph: &ModuleGraph,
+) -> Result<(), EmitError> {
+    use self::ts_num_js_emit::TsNumJsOutput as JsEmitter;
+    use self::ts_num_json_emit::TsNumJsonOutput as JsonEmitter;
+
+    let js_emitter = JsEmitter::new(options);
+    let json_emitter = JsonEmitter::new(options);
+
+    emit(options, root_module_path, typed_graph, js_emitter, json_emitter)
+}
+
 pub fn ts_full_emit(
     options: &CompileOpt,
     root_module_path: &CanonPath,
