@@ -18,6 +18,12 @@ macro_rules! src_file {
     }
 }
 
+macro_rules! py_compiled_file {
+    ($f: expr) => {
+        format!("{}/{}", ARR_COMPILED_DIR, $f)
+    }
+}
+
 #[test]
 fn i_test() {
     common::check_aux_bins().unwrap();
@@ -51,5 +57,15 @@ fn i_test() {
     if !pyret_output.status.success() {
         dbg!(test_env);
         panic!("Command `{:?}` failed with code: {}", pyret_build_cmd, pyret_output.status);
+    }
+
+    let mut run_pyret_cmd = test_env.run_pyret_cmd(py_compiled_file!("project/basic_ts_num_runner.arr.js"));
+    let run_output = run_pyret_cmd
+        .output()
+        .expect("pyret execution failed (i/o error)");
+
+    if !run_output.status.success() {
+        dbg!(test_env);
+        panic!("Command `{:?}` failed with code: {}", run_pyret_cmd, run_output.status);
     }
 }
