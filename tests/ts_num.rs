@@ -31,7 +31,7 @@ macro_rules! program_output {
 }
 
 #[test]
-fn i_test() {
+fn basic_ts_num_runner() {
     common::check_aux_bins().unwrap();
 
     let test_env = common::TestEnv::new("i_test");
