@@ -53,8 +53,8 @@ impl<'a> TsNumJsOutput<'a> {
     fn c_ts_fn_py_fn(&mut self, fn_type: &FnType, binding: &str) -> String {
         let mut header = "function(".to_string();
         let mut body = "".to_string();
-        let mut result = format!("let _result = {}(", binding);
-        let result_id = "_result";
+        let result_id = format!("_result{}", self.anon_inc());
+        let mut result = format!("let {} = {}(", &result_id, binding);
 
         for (index, param_type) in fn_type.params.iter().enumerate() {
             let param_id = self.tmp_binding();
@@ -82,9 +82,9 @@ impl<'a> TsNumJsOutput<'a> {
         result.push(';');
 
         let return_conversion = match *fn_type.return_type {
-            Type::Fn(ref fn_type) => self.c_ts_fn_py_fn(fn_type, result_id),
+            Type::Fn(ref fn_type) => self.c_ts_fn_py_fn(fn_type, &result_id),
 
-            Type::Number => self.c_ts_number_py_number(result_id),
+            Type::Number => self.c_ts_number_py_number(&result_id),
 
             ref t => unreachable!("c_ts_fn_py_fn: {} {:?} (return)", binding, t),
         };
@@ -95,8 +95,8 @@ impl<'a> TsNumJsOutput<'a> {
     fn c_py_fn_ts_fn(&mut self, fn_type: &FnType, binding: &str) -> String {
         let mut header = "function(".to_string();
         let mut body = "".to_string();
-        let mut result = format!("let _result = {}(", binding);
-        let result_id = "_result";
+        let result_id = format!("_result{}", self.anon_inc());
+        let mut result = format!("let {} = {}(", result_id, binding);
 
         for (index, param_type) in fn_type.params.iter().enumerate() {
             let param_id = self.tmp_binding();
@@ -124,9 +124,9 @@ impl<'a> TsNumJsOutput<'a> {
         result.push(';');
 
         let return_conversion = match *fn_type.return_type {
-            Type::Fn(ref fn_type) => self.c_py_fn_ts_fn(fn_type, result_id),
+            Type::Fn(ref fn_type) => self.c_py_fn_ts_fn(fn_type, &result_id),
 
-            Type::Number => self.c_py_number_ts_number(result_id),
+            Type::Number => self.c_py_number_ts_number(&result_id),
 
             ref t => unreachable!("c_py_fn_ts_fn: {} {:?} (return)", binding, t),
         };
