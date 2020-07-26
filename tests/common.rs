@@ -23,6 +23,7 @@
 
 use std::error;
 use std::env;
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command, Stdio};
 use std::io::{self, Write};
@@ -156,11 +157,29 @@ impl TestEnv {
     }
 
     pub fn pyret_cmd(&self) -> Command {
-        todo!();
+        let mut pyret = Command::new("node");
+        pyret
+            .arg(self.pyret_compiler_path.as_path());
+
+        pyret
     }
 
-    pub fn pyret_build_cmd(&self) -> Command {
-        todo!();
+    pub fn pyret_build_cmd<S: AsRef<OsStr>>(&self, root_arr_file: S) -> Command {
+	// node $(ANCHOR_COMPILER) --type-check true --builtin-js-dir $(ANCHOR_RUNTIME)  --build-runnable $(MAIN)
+        let mut pyret = self.pyret_cmd();
+
+        pyret
+            .stderr(Stdio::inherit())
+            .arg("--type-check")
+            .arg("true")
+
+            .arg("--builtin-js-dir")
+            .arg(self.pyret_runtime_dir.as_path())
+
+            .arg("--build-runnable")
+            .arg(root_arr_file);
+
+        pyret
     }
 }
 
