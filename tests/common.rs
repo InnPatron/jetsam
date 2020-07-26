@@ -164,12 +164,19 @@ impl TestEnv {
         pyret
     }
 
-    pub fn pyret_build_cmd<S: AsRef<OsStr>>(&self, root_arr_file: S) -> Command {
+    pub fn pyret_build_cmd<S1: AsRef<OsStr>, S2: AsRef<Path>, S3: AsRef<Path>>(&self, root_arr_file: S1, base_path: S2, compiled_path: S3) -> Command {
 	// node $(ANCHOR_COMPILER) --type-check true --builtin-js-dir $(ANCHOR_RUNTIME)  --build-runnable $(MAIN)
         let mut pyret = self.pyret_cmd();
 
         pyret
             .stderr(Stdio::inherit())
+
+            .arg("--compiled-dir")
+            .arg(self.tmp_dir.join(compiled_path))
+
+            .arg("--base-dir")
+            .arg(self.tmp_dir.join(base_path))
+
             .arg("--type-check")
             .arg("true")
 
