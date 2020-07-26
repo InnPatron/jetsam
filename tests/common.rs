@@ -188,6 +188,16 @@ impl TestEnv {
 
         pyret
     }
+
+    pub fn run_pyret_cmd<S1: AsRef<Path>>(&self, module: S1) -> Command {
+        let mut pyret = Command::new("node");
+
+        pyret
+            .stderr(Stdio::inherit())
+            .arg(self.tmp_dir.join(module));
+
+        pyret
+    }
 }
 
 pub fn check_aux_bins() -> Result<(), String> {
