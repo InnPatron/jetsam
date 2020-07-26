@@ -42,6 +42,14 @@ impl<'a> TsNumJsOutput<'a> {
         format!("___{}", self.anon_inc())
     }
 
+    fn prelude(&self, output: &mut String) {
+        // C_ts_number_py_number
+        output.push_str("let C_ts_number_py_number = function(ts_num) { return ts_num; };\n");
+
+        // C_py_number_ts_number
+        output.push_str("let C_py_number_ts_number = function(py_num) { if (typeof(py_num) === 'number') { return py_num;} else { return py_num.toFixnum(); } };\n");
+    }
+
     fn c_ts_number_py_number(&self, binding: &str) -> String {
         format!("{}({})", C_TS_NUMBER_PY_NUMBER, binding)
     }
@@ -173,6 +181,7 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
 
         let mut output = String::new();
 
+
         let require_path = self.options.require_path
             .as_ref()
             .map(|p| p.clone())
@@ -182,9 +191,12 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
             &format!("const root = require(\"{}\");\n", require_path)
         );
 
+        // Need to NOT override the original root object
         output.push_str(
-            &format!("module.exports = root;\n\n")
+            "module.exports = Object.assign({}, root);\n"
         );
+
+        self.prelude(&mut output);
 
         for (override_key, override_value) in self.overrides.into_iter() {
             output.push_str(
