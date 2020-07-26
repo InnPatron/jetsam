@@ -24,6 +24,12 @@ macro_rules! py_compiled_file {
     }
 }
 
+macro_rules! program_output {
+    ($expected: expr) => {
+        format!("{}All tests pass\n", $expected);
+    }
+}
+
 #[test]
 fn i_test() {
     common::check_aux_bins().unwrap();
@@ -61,6 +67,7 @@ fn i_test() {
 
     let mut run_pyret_cmd = test_env.run_pyret_cmd(py_compiled_file!("project/basic_ts_num_runner.arr.js"));
     let run_output = run_pyret_cmd
+        //.stdout(std::process::Stdio::inherit())
         .output()
         .expect("pyret execution failed (i/o error)");
 
@@ -68,4 +75,11 @@ fn i_test() {
         dbg!(test_env);
         panic!("Command `{:?}` failed with code: {}", run_pyret_cmd, run_output.status);
     }
+
+    let run_stdout: String = String::from_utf8(run_output.stdout)
+        .expect("Pyret execution did NOT emit utf8 in stdout");
+
+    let expected = program_output!("40\n-20\n-55\n99\nDone\n");
+
+    assert_eq!(expected, run_stdout);
 }
