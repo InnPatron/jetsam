@@ -24,12 +24,6 @@ macro_rules! py_compiled_file {
     }
 }
 
-macro_rules! program_output {
-    ($expected: expr) => {
-        format!("{}All tests pass\n", $expected);
-    }
-}
-
 #[test]
 fn basic_ts_num_runner() {
     common::check_aux_bins().unwrap();
@@ -79,7 +73,7 @@ fn basic_ts_num_runner() {
     let run_stdout: String = String::from_utf8(run_output.stdout)
         .expect("Pyret execution did NOT emit utf8 in stdout");
 
-    let expected = program_output!("40\n-20\n-55\n99\nDone\n");
+    let expected = common::line_separated_expected(&["40", "-20", "-55", "99", "Done"]);
 
     assert_eq!(expected, run_stdout);
 }
