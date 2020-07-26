@@ -10,7 +10,7 @@ use crate::compile_opt::CompileOpt;
 use super::JsEmitter;
 
 const C_TS_NUMBER_PY_NUMBER: &'static str = "C_ts_number_py_number";
-const C_PY_NUMBER_TS_NUMBER: &'static str = "C_py_number_ty_number";
+const C_PY_NUMBER_TS_NUMBER: &'static str = "C_py_number_ts_number";
 
 macro_rules! root_value {
     ($i: expr) => {
@@ -20,7 +20,8 @@ macro_rules! root_value {
 
 pub(super) struct TsNumJsOutput<'a> {
     options: &'a CompileOpt<'a>,
-    overrides: IndexMap<String, String>
+    overrides: IndexMap<String, String>,
+    anon_counter: u64,
 }
 
 impl<'a> TsNumJsOutput<'a> {
@@ -28,7 +29,17 @@ impl<'a> TsNumJsOutput<'a> {
         TsNumJsOutput {
             options,
             overrides: IndexMap::new(),
+            anon_counter: 0,
         }
+    }
+
+    fn anon_inc(&mut self) -> u64 {
+        self.anon_counter += 1;
+        self.anon_counter
+    }
+
+    fn tmp_binding(&mut self) -> String {
+        format!("___{}", self.anon_inc())
     }
 
     fn c_ts_number_py_number(&self, binding: &str) -> String {
@@ -39,18 +50,19 @@ impl<'a> TsNumJsOutput<'a> {
         format!("{}({})", C_PY_NUMBER_TS_NUMBER, binding)
     }
 
-    fn c_ts_fn_py_fn(&self, fn_type: &FnType, binding: &str) -> String {
+    fn c_ts_fn_py_fn(&mut self, fn_type: &FnType, binding: &str) -> String {
         let mut header = "function(".to_string();
         let mut body = "".to_string();
         let mut result = format!("let _result = {}(", binding);
         let result_id = "_result";
 
         for (index, param_type) in fn_type.params.iter().enumerate() {
-            let param_id = format!("_{}", index);
+            let param_id = self.tmp_binding();
+            let converted_id = self.tmp_binding();
             header.push_str(&param_id);
             header.push(',');
 
-            result.push_str(&param_id);
+            result.push_str(&converted_id);
             result.push(',');
 
             let converted = match param_type {
@@ -62,7 +74,7 @@ impl<'a> TsNumJsOutput<'a> {
 
             };
 
-            body.push_str(&format!("{} = {};\n", param_id, converted));
+            body.push_str(&format!("let {} = {};\n", converted_id, converted));
         }
         header.push(')');
 
@@ -80,18 +92,19 @@ impl<'a> TsNumJsOutput<'a> {
         format!("{} {{\n{}{}\nreturn {};}}", header, body, result, return_conversion)
     }
 
-    fn c_py_fn_ts_fn(&self, fn_type: &FnType, binding: &str) -> String {
+    fn c_py_fn_ts_fn(&mut self, fn_type: &FnType, binding: &str) -> String {
         let mut header = "function(".to_string();
         let mut body = "".to_string();
         let mut result = format!("let _result = {}(", binding);
         let result_id = "_result";
 
         for (index, param_type) in fn_type.params.iter().enumerate() {
-            let param_id = format!("_{}", index);
+            let param_id = self.tmp_binding();
+            let converted_id = self.tmp_binding();
             header.push_str(&param_id);
             header.push(',');
 
-            result.push_str(&param_id);
+            result.push_str(&converted_id);
             result.push(',');
 
             let converted = match param_type {
@@ -103,7 +116,7 @@ impl<'a> TsNumJsOutput<'a> {
 
             };
 
-            body.push_str(&format!("{} = {};\n", param_id, converted));
+            body.push_str(&format!("let {} = {};\n", converted_id, converted));
         }
         header.push(')');
 
