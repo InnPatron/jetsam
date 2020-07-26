@@ -232,3 +232,15 @@ fn repeat<F: FnMut() -> io::Result<()>>(mut f: F) -> io::Result<()> {
     }
     Err(last_err.unwrap())
 }
+
+pub fn line_separated_expected<T: IntoIterator<Item=I>, I: std::fmt::Display>(iter: T) -> String {
+    let mut output = String::new();
+
+    for t in iter.into_iter() {
+        std::fmt::write(&mut output, format_args!("{}\n", t));
+    }
+
+    output.push_str("All tests pass\n");
+
+    output
+}
