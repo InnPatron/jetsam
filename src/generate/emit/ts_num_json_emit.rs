@@ -20,13 +20,6 @@ macro_rules! local_type {
     }
 }
 
-macro_rules! opaque_record {
-    () => {
-        json!(["record", {}])
-    }
-}
-
-
 /// ``` text
 /// datatype formats:
 ///     [ "data", name, [type-param-names], [variants], [methods] ]
