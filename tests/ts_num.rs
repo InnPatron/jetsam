@@ -28,7 +28,7 @@ macro_rules! py_compiled_file {
 fn basic_ts_num_runner() {
     common::check_aux_bins().unwrap();
 
-    let test_env = common::TestEnv::new("i_test");
+    let test_env = common::TestEnv::new("basic_ts_num_runner");
 
     test_env.create_tmp_dir(SRC_DIR);
     test_env.create_tmp_dir(BINDING_DIR);
