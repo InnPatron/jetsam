@@ -1,8 +1,8 @@
 #[macro_use]
 mod macros;
 
-mod ts_full_js_emit;
-mod ts_full_json_emit;
+//mod ts_full_js_emit;
+//mod ts_full_json_emit;
 
 mod ts_num_js_emit;
 mod ts_num_json_emit;
@@ -55,13 +55,14 @@ pub fn ts_full_emit(
     root_module_path: &CanonPath,
     typed_graph: &ModuleGraph,
 ) -> Result<(), EmitError> {
-    use self::ts_full_js_emit::TsFullJsOutput as JsEmitter;
-    use self::ts_full_json_emit::TsFullJsonOutput as JsonEmitter;
+    //use self::ts_full_js_emit::TsFullJsOutput as JsEmitter;
+    //use self::ts_full_json_emit::TsFullJsonOutput as JsonEmitter;
 
-    let js_emitter = JsEmitter::new(options);
-    let json_emitter = JsonEmitter::new(options);
+    //let js_emitter = JsEmitter::new(options);
+    //let json_emitter = JsonEmitter::new(options);
 
-    emit(options, root_module_path, typed_graph, js_emitter, json_emitter)
+    //emit(options, root_module_path, typed_graph, js_emitter, json_emitter)
+    todo!("TS-FULL")
 }
 
 pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
