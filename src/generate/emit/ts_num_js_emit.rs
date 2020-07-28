@@ -62,14 +62,15 @@ impl<'a> TsNumJsOutput<'a> {
 
         // module.exports = Object.assign({}, root)
         let default_set = {
-            let object_dot = expr!(DOT expr!(Ident "Object") => expr!(Ident "assign"));
+            let object_dot = expr!(Member expr!(Ident "Object") => expr!(String "assign"));
             let object_assign_call = expr!(Call object_dot =>
                 expr!(Object),
                 expr!(Ident "root")
             );
 
-            let module_dot = expr!(DOT expr!(Ident "module") => expr!(Ident "exports"));
-            let assign = expr!(Assign module_dot = object_assign_call);
+            let module_dot = expr!(Member expr!(Ident "module") => expr!(String "exports"));
+            let module_dot = pat!(expr module_dot);
+            let assign = expr!(Assign module_dot => object_assign_call);
 
             stmt!(Expr assign)
         };
@@ -94,9 +95,10 @@ impl<'a> TsNumJsOutput<'a> {
         let c_py_number_ts_number = function!(
             param!(ident!("py_num"))
             =>
-            stmt!(if expr!(=== condition, expr!(Ident "number"))
+            stmt!(if expr!(=== condition, expr!(String "number"))
                 => stmt!(return expr!(Ident "py_num"));
                 else => stmt!(return expr!(Call
+                        // Need to use `py_num.toFixnum` b/c need to search prototype chain
                         expr!(DOT expr!(Ident "py_num") => expr!(Ident "toFixnum"))))
             )
         );
@@ -199,7 +201,7 @@ impl<'a> TsNumJsOutput<'a> {
         };
 
         Expr::Fn(FnExpr {
-            ident: Some(ident!(binding)),
+            ident: None,
             function: wrapper
         })
     }
@@ -256,13 +258,12 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
 
             // module.exports["override_key"] = override_value;
             let override_stmt: Stmt = {
-                let module_dot = expr!(DOT expr!(Ident "module") => expr!(Ident "exports"));
-                let module_dot = pat!(expr module_dot);
-                let module_override = pat!(index module_dot =>
-                    pat!(expr expr!(String override_key))
+                let module_dot = expr!(Member expr!(Ident "module") => expr!(String "exports"));
+                let module_override = expr!(Member module_dot =>
+                    expr!(String override_key)
                 );
 
-                let assign = expr!(Assign module_override => override_value);
+                let assign = expr!(Assign-expr module_override => override_value);
                 stmt!(Expr assign)
             };
 

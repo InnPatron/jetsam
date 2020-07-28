@@ -192,6 +192,24 @@ macro_rules! expr {
         })
     };
 
+    (Assign-expr $expr: expr => $value: expr) => {
+        Expr::Assign(AssignExpr {
+            span: DUMMY_SP,
+            op: AssignOp::Assign,
+            left: PatOrExpr::Expr(Box::new($expr)),
+            right: Box::new($value),
+        })
+    };
+
+    (Member $object: expr => $member: expr) => {
+        Expr::Member(MemberExpr {
+            span: DUMMY_SP,
+            obj: ExprOrSuper::Expr(Box::new($object)),
+            prop: Box::new($member),
+            computed: true,
+        })
+    };
+
     (DOT $object: expr => $member: expr) => {
         Expr::Member(MemberExpr {
             span: DUMMY_SP,
