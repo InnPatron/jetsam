@@ -19,6 +19,25 @@ macro_rules! param {
     }
 }
 
+macro_rules! pat {
+    ($id: ident) => {
+        Pat::Ident(ident!(stringify!($id)))
+    };
+
+    (expr $expr: expr) => {
+        Pat::Expr(Box::new($expr))
+    };
+
+    (index $base: expr => $index: expr) => {
+        Pat::Array(ArrayPat {
+            span: DUMMY_SP,
+            elems: vec![Some($index)],
+            optional: false,
+            type_ann: None,
+        })
+    }
+}
+
 macro_rules! stmt {
     (return) => {
         Stmt::Return(ReturnStmt { span: DUMMY_SP, arg: None })
@@ -26,6 +45,13 @@ macro_rules! stmt {
 
     (return $v: expr) => {
         Stmt::Return(ReturnStmt { span: DUMMY_SP, arg: Some(Box::new($v)) })
+    };
+
+    (Expr $v: expr) => {
+        Stmt::Expr(ExprStmt {
+            span: DUMMY_SP,
+            expr: Box::new($v),
+        })
     };
 
     (var $bind: expr => $value: expr) => {{
@@ -73,7 +99,7 @@ macro_rules! stmt {
             decls: vec![
                 VarDeclarator {
                     span: DUMMY_SP,
-                    name: Pat::Ident($bind),
+                    name: Pat::Ident(ident!($bind)),
                     init: Some(Box::new($value)),
                     definite: true,         // TODO: What is this for?
                 }
@@ -85,6 +111,14 @@ macro_rules! stmt {
 macro_rules! expr {
     (Ident $ident: expr) => {
         Expr::Ident(ident!($ident))
+    };
+
+    (String $str: expr) => {
+        Expr::Lit(Lit::Str(Str {
+            span: DUMMY_SP,
+            value: JsWord::from($str),
+            has_escape: false,
+        }))
     };
 
     (Fn $fn: expr) => {
@@ -110,6 +144,15 @@ macro_rules! expr {
         })
     };
 
+    (Call-flat $fn: expr => $args: expr) => {
+        Expr::Call(CallExpr {
+            span: DUMMY_SP,
+            callee: ExprOrSuper::Expr(Box::new($fn)),
+            args: $args,
+            type_args: None,
+        })
+    };
+
     (Call $fn: expr => $($arg: expr),+) => {
         Expr::Call(CallExpr {
             span: DUMMY_SP,
@@ -131,12 +174,51 @@ macro_rules! expr {
         })
     };
 
+    (Assign $assign: ident = $value: expr) => {
+        Expr::Assign(AssignExpr {
+            span: DUMMY_SP,
+            op: AssignOp::Assign,
+            left: PatOrExpr::Pat(Box::new(Pat::Ident(ident!(stringify!($assign))))),
+            right: Box::new($value),
+        })
+    };
+
+    (Assign $pat: expr => $value: expr) => {
+        Expr::Assign(AssignExpr {
+            span: DUMMY_SP,
+            op: AssignOp::Assign,
+            left: PatOrExpr::Pat(Box::new($pat)),
+            right: Box::new($value),
+        })
+    };
+
     (DOT $object: expr => $member: expr) => {
         Expr::Member(MemberExpr {
             span: DUMMY_SP,
             obj: ExprOrSuper::Expr(Box::new($object)),
             prop: Box::new($member),
             computed: false,
+        })
+    };
+
+    (Object) => {
+        Expr::Object(ObjectLit {
+            span: DUMMY_SP,
+            props: vec![]
+        })
+    };
+
+    (Object $($field: expr => $value: expr),*) => {
+        Expr::Object(ObjectLit {
+            span: DUMMY_SP,
+            props: vec![
+                $(PropOrSpread::Prop(
+                        Box::new(Prop::KeyValue(KeyValueProp {
+                            key: PropName::Ident(ident!($field)),
+                            value: Box::new($value),
+                        })))
+                ),*
+            ]
         })
     }
 }
