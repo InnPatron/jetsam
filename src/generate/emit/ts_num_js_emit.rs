@@ -1,5 +1,9 @@
 use std::path::Path;
 
+use swc_atoms::JsWord;
+use swc_common::DUMMY_SP;
+use swc_ecma_ast::*;
+
 use indexmap::IndexMap;
 
 use crate::generate::type_structs::*;
@@ -43,7 +47,36 @@ impl<'a> TsNumJsOutput<'a> {
     }
 
     fn prelude(&self, output: &mut String) {
-        // C_ts_number_py_number
+        let c_ts_number_py_number = function!(
+            param!(ident!("ts_num"))
+            =>
+            stmt!(return expr!(Ident "ts_num"))
+        );
+
+        let c_ts_number_py_number = stmt!(
+            const ident!("C_ts_number_py_number") =>
+                expr!(Fn("C_ts_number_py_number") @ c_ts_number_py_number)
+        );
+
+        let condition = expr!(Call expr!(Ident "typeof") =>
+            expr!(Ident "py_num")
+        );
+
+        let c_py_number_ts_number = function!(
+            param!(ident!("py_num"))
+            =>
+            stmt!(if expr!(=== condition, expr!(Ident "number"))
+                => stmt!(return expr!(Ident "py_num"));
+                else => stmt!(return expr!(Call
+                        expr!(DOT expr!(Ident "py_num") => expr!(Ident "toFixnum"))))
+            )
+        );
+
+        let c_py_number_ts_number = stmt!(
+            const ident!("C_py_number_ts_number") =>
+                expr!(Fn("C_py_number_ts_number") @ c_py_number_ts_number)
+        );
+
         output.push_str("let C_ts_number_py_number = function(ts_num) { return ts_num; };\n");
 
         // C_py_number_ts_number

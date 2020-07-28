@@ -1,3 +1,6 @@
+#[macro_use]
+mod macros;
+
 mod ts_full_js_emit;
 mod ts_full_json_emit;
 
