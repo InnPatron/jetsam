@@ -12,7 +12,6 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::sync::Arc;
 
 use swc_ecma_ast::Module as AstModule;
 
@@ -20,7 +19,6 @@ use crate::generate::js_pp::PrettyPrinter;
 use crate::generate::structures::*;
 use crate::generate::error::EmitError;
 use crate::generate::typify_graph::ModuleGraph;
-use crate::generate::config::EmitConfig;
 use crate::generate::type_structs::Type;
 use crate::compile_opt::CompileOpt;
 

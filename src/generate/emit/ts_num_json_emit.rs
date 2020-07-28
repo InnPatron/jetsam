@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
-use serde_json::error::Error as JsonError;
 
 use crate::compile_opt::CompileOpt;
 use crate::generate::error::EmitError;
