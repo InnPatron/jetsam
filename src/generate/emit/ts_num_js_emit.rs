@@ -9,7 +9,6 @@ use indexmap::IndexMap;
 
 use crate::generate::type_structs::*;
 use crate::generate::error::EmitError;
-use crate::generate::emit_common;
 use crate::compile_opt::CompileOpt;
 
 use super::JsEmitter;

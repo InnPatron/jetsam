@@ -12,7 +12,6 @@ mod graph_reduce;
 mod typify_graph;
 mod js_pp;
 mod emit;
-mod emit_common;
 mod config;
 mod ts_flavor_detector;
 mod ts_flavor_compat;
