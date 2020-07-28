@@ -22,7 +22,6 @@ use swc_common::{
     errors::{ColorConfig, Handler},
     SourceMap,
 };
-use swc_ecma_parser::Session;
 
 pub use self::config::GenConfig;
 pub use self::config::EmitConfig;
@@ -37,11 +36,7 @@ pub fn gen(options: compile_opt::CompileOpt) {
             Handler::with_tty_emitter(ColorConfig::Auto, true, false,
 Some(cm.clone()));
 
-        let session = Session {
-            handler: &handler,
-        };
-
-        let cache = match bind_init::init(cm.clone(), session, options.input_path.clone()) {
+        let cache = match bind_init::init(cm.clone(), handler, options.input_path.clone()) {
             Ok(c) => c,
 
             Err(e) => {
