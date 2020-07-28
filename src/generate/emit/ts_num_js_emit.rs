@@ -3,6 +3,7 @@ use std::path::Path;
 use swc_atoms::JsWord;
 use swc_common::DUMMY_SP;
 use swc_ecma_ast::*;
+use swc_ecma_ast::Module as AstModule;
 
 use indexmap::IndexMap;
 
@@ -52,7 +53,29 @@ impl<'a> TsNumJsOutput<'a> {
         format!("___{}", self.anon_inc())
     }
 
-    fn prelude(&self, body: &mut Vec<Stmt>) {
+    fn prelude(&self, body: &mut Vec<ModuleItem>, require_path: &str) {
+        // const root = require(require_path);
+        let root_import = {
+            let call = expr!(Call expr!(Ident "require") => expr!(String require_path));
+            stmt!(const "root" => call)
+        };
+
+        // module.exports = Object.assign({}, root)
+        let default_set = {
+            let object_dot = expr!(DOT expr!(Ident "Object") => expr!(Ident "assign"));
+            let object_assign_call = expr!(Call object_dot =>
+                expr!(Object),
+                expr!(Ident "root")
+            );
+
+            let module_dot = expr!(DOT expr!(Ident "module") => expr!(Ident "exports"));
+            let assign = expr!(Assign module_dot = object_assign_call);
+
+            stmt!(Expr assign)
+        };
+
+
+
         let c_ts_number_py_number = function!(
             param!(ident!("ts_num"))
             =>
@@ -83,8 +106,10 @@ impl<'a> TsNumJsOutput<'a> {
                 expr!(Fn("C_py_number_ts_number") @ c_py_number_ts_number)
         );
 
-        body.push(c_ts_number_py_number);
-        body.push(c_py_number_ts_number);
+        body.push(ModuleItem::Stmt(root_import));
+        body.push(ModuleItem::Stmt(default_set));
+        body.push(ModuleItem::Stmt(c_ts_number_py_number));
+        body.push(ModuleItem::Stmt(c_py_number_ts_number));
     }
 
     fn c_ts_number_py_number(&self, binding: &str) -> Expr {
@@ -217,38 +242,15 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
     }
 
     fn finalize(self, current_module: &Path, default_require_path: String)
-        -> Result<String, EmitError> {
+        -> Result<AstModule, EmitError> {
 
         let require_path = self.options.require_path
             .as_ref()
             .map(|p| p.clone())
             .unwrap_or(&default_require_path);
 
-        // const root = require(require_path);
-        let root_import = {
-            let call = expr!(Call expr!(Ident "require") => expr!(String require_path));
-            stmt!(const "root" => call)
-        };
-
-        // module.exports = Object.assign({}, root)
-        let default_set = {
-            let object_dot = expr!(DOT expr!(Ident "Object") => expr!(Ident "assign"));
-            let object_assign_call = expr!(Call object_dot =>
-                expr!(Object),
-                expr!(Ident "root")
-            );
-
-            let module_dot = expr!(DOT expr!(Ident "module") => expr!(Ident "exports"));
-            let assign = expr!(Assign module_dot = object_assign_call);
-
-            stmt!(Expr assign)
-        };
-
-        let mut body = vec![
-            root_import,
-            default_set,
-        ];
-        self.prelude(&mut body);
+        let mut body = Vec::new();
+        self.prelude(&mut body, &require_path);
 
         for (override_key, override_value) in self.overrides.into_iter() {
 
@@ -264,9 +266,13 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
                 stmt!(Expr assign)
             };
 
-            body.push(override_stmt);
+            body.push(ModuleItem::Stmt(override_stmt));
         }
 
-        todo!();
+        Ok(AstModule {
+            span: DUMMY_SP,
+            body,
+            shebang: None,
+        })
     }
 }
