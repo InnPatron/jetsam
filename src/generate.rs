@@ -10,6 +10,7 @@ mod bind_common;
 mod bind_graph_init;
 mod graph_reduce;
 mod typify_graph;
+mod js_pp;
 mod emit;
 mod emit_common;
 mod config;

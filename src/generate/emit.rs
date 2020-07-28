@@ -7,11 +7,16 @@ mod macros;
 mod ts_num_js_emit;
 mod ts_num_json_emit;
 
+
 use std::collections::HashSet;
 use std::path::Path;
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufWriter, Write};
+use std::sync::Arc;
 
+use swc_ecma_ast::Module as AstModule;
+
+use crate::generate::js_pp::PrettyPrinter;
 use crate::generate::structures::*;
 use crate::generate::error::EmitError;
 use crate::generate::typify_graph::ModuleGraph;
@@ -28,7 +33,7 @@ pub trait JsonEmitter {
 pub trait JsEmitter {
     fn handle_type(&mut self, current_module: &Path, name: &str, typ: &Type) -> Result<(), EmitError>;
     fn handle_value(&mut self, current_module: &Path, name: &str, value_type: &Type) -> Result<(), EmitError>;
-    fn finalize(self, current_module: &Path, default_require_path: String) -> Result<String, EmitError>;
+    fn finalize(self, current_module: &Path, default_require_path: String) -> Result<AstModule, EmitError>;
 }
 
 struct Context<JS: JsEmitter, JSON: JsonEmitter> {
@@ -142,16 +147,19 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
 
             buff.display().to_string()
         };
-        let mut file =
-            File::create(js_output_path)
+        let file =
+            File::create(&js_output_path)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
-        let output = context.js_output
+        let file = BufWriter::new(file);
+
+        let ast_module = context.js_output
             .finalize(root_path, default_require_path)?;
 
-        file.write_all(output.as_bytes())
+        // NOTE: Cannot use swc_ecma_codegen for whatever reason
+        //   Provided emitter appears to rely on SourceMap and Spans
+        let _ = PrettyPrinter::print(file, &ast_module)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
-
     });
 
     Ok(())
