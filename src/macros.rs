@@ -32,14 +32,12 @@ macro_rules! opt_arg {
      key: $key: ident;
      long: $long: expr;
      values: $values: expr;
-     default: $default: expr;
      validator: $validator: expr;
      help: $help: expr) => {
         $app = $app.arg(Arg::with_name(stringify!($key))
             .long($long)
             .takes_value(true)
             .possible_values($values)
-            .default_value($default)
             .validator($validator)
             .help($help)
             .required(false));
@@ -49,7 +47,6 @@ macro_rules! opt_arg {
      key: $key: ident;
      long: $long: expr;
      values: $values: expr;
-     default: $default: expr;
      validator: $validator: expr;
      help: $help: expr;
      help-long: $help_long: expr) => {
@@ -58,7 +55,6 @@ macro_rules! opt_arg {
             .takes_value(true)
             .validator($validator)
             .possible_values($values)
-            .default_value($default)
             .help($help)
             .long_help($help_long)
             .required(false));

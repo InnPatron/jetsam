@@ -98,7 +98,6 @@ fn main() {
             key: OUTPUT_CONSTRUCTOR_WRAPPERS;
             long: "constructor-wrappers";
             values: bool_values!();
-            default: "true";
             validator: bool_validator;
             help:
             "Generate Pyret functions around class constructors";
@@ -106,6 +105,8 @@ fn main() {
 "Generate Pyret functions around class constructors.
 Used by:
     * TS-FULL
+
+[default: true]
 "
         );
 
@@ -113,7 +114,6 @@ Used by:
             key: OUTPUT_OPAQUE_INTERFACES;
             long: "opaque-interfaces";
             values: bool_values!();
-            default: "true";
             validator: bool_validator;
             help:
             "Generate 1:1 opaque nominal datatypes for Pyret interfaces";
@@ -121,6 +121,7 @@ Used by:
 "Generate 1:1 opaque nominal datatypes for Pyret interfaces
 Used by:
     * TS-FULL
+[default: true]
 "
         );
 
@@ -128,7 +129,6 @@ Used by:
             key: WRAP_TOP_LEVEL_VARS;
             long: "wrap-top-level-vars";
             values: bool_values!();
-            default: "true";
             validator: bool_validator;
             help:
             "Generate converter getters around exported top-level variables";
@@ -137,6 +137,7 @@ Used by:
 Used by:
     * TS-FULL
     * TS-NUM
+[default: true]
 "
         );
 
