@@ -31,6 +31,10 @@ use std::fs::{self, File};
 use std::thread;
 use std::time::Duration;
 
+pub const SRC_DIR: &'static str = "src";
+pub const BINDING_DIR: &'static str = "src/bindings";
+pub const ARR_COMPILED_DIR: &'static str = "compiled";
+
 const PYRET_COMPILER_DIR: &'static str = "PYRET_COMPILER_DIR";
 const PYRET_RUNTIME_DIR: &'static str = "PYRET_RUNTIME_DIR";
 const PYRET_COMPILER_NAME: &'static str = "pyret.jarr";

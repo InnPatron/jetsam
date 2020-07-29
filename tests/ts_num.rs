@@ -2,9 +2,7 @@
 mod macros;
 mod common;
 
-const SRC_DIR: &'static str = "src";
-const BINDING_DIR: &'static str = "src/bindings";
-const ARR_COMPILED_DIR: &'static str = "compiled";
+use common::{SRC_DIR, BINDING_DIR, ARR_COMPILED_DIR};
 
 macro_rules! binding_file {
     ($f: expr) => {
