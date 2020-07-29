@@ -112,8 +112,17 @@ impl<'a> JsonEmitter for TsNumJsonOutput<'a> {
 
     fn export_value(&mut self, current_module: &Path, name: &str, value_type: &Type)
         -> Result<(), EmitError> {
-        let value_type = TsNumJsonOutput::in_place_type_to_value(value_type)
-            .map_err(|e| EmitError::Misc(current_module.to_owned(), e))?;
+
+        let value_type = match value_type {
+
+            // TODO: Add option to wrap variables in getters or leave unaltered
+            //   Assuming getters are generated for now
+            Type::Number => json!(["arrow", [], "Number"]),
+
+            _ => TsNumJsonOutput::in_place_type_to_value(value_type)
+                    .map_err(|e| EmitError::Misc(current_module.to_owned(), e))?,
+        };
+
 
         self.provides_values.insert(name.to_string(), value_type);
 
