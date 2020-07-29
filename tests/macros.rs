@@ -20,6 +20,7 @@ macro_rules! py_compiled_file {
     }
 }
 
+/// Can get debug result/expected prints by defining env var DBG_EPRINT
 macro_rules! make_test {
     (BASIC($test_name: ident) expects: $expected: expr) => {
 
@@ -88,7 +89,18 @@ macro_rules! make_test {
 
             let expected = $expected;
 
-            assert_eq!(expected, run_stdout);
+            if expected != run_stdout {
+                use std::env;
+
+                if std::env::var_os("DBG_EPRINT").is_some() {
+                    eprintln!("Expected:\n{:#?}", expected);
+                    eprintln!("Result:\n{:#?}", run_stdout);
+                } else {
+                    eprintln!("Expected:\n{}", expected);
+                    eprintln!("Result:\n{}", run_stdout);
+                }
+                panic!("Expected did not equal result");
+            }
         }
     }
 }
