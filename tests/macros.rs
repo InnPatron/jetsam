@@ -20,7 +20,7 @@ macro_rules! py_compiled_file {
     }
 }
 
-/// Can get debug result/expected prints by defining env var DBG_EPRINT
+/// Can get debug result/expected prints by defining env var "DBG_EPRINT"
 macro_rules! make_test {
     (BASIC($test_name: ident) expects: $expected: expr) => {
 
