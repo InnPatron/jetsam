@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct GenConfig {
 
     /// Define functions that wrap class constructors (expiremental)
@@ -21,6 +22,7 @@ impl Default for GenConfig {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct EmitConfig {
     pub json: bool,
     pub js: bool,
