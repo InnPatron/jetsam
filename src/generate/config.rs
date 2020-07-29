@@ -11,6 +11,12 @@ pub struct GenConfig {
     ///     * TS-FULL
     pub output_opaque_interfaces: bool,
 
+    /// Define getter wraps for exported top-level variables. Defaults to true.
+    /// Used by:
+    ///     * TS-FULL
+    ///     * TS-NUM
+    pub wrap_top_level_vars: bool,
+
 }
 
 impl Default for GenConfig {
@@ -18,6 +24,7 @@ impl Default for GenConfig {
         GenConfig {
             output_constructor_wrappers: true,
             output_opaque_interfaces: true,
+            wrap_top_level_vars: true,
         }
     }
 }

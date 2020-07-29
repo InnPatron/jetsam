@@ -124,6 +124,22 @@ Used by:
 "
         );
 
+        opt_arg!(app =>
+            key: WRAP_TOP_LEVEL_VARS;
+            long: "wrap-top-level-vars";
+            values: bool_values!();
+            default: "true";
+            validator: bool_validator;
+            help:
+            "Generate converter getters around exported top-level variables";
+            help-long:
+"Generate converter getters around exported top-level variables
+Used by:
+    * TS-FULL
+    * TS-NUM
+"
+        );
+
         app
     }.get_matches();
 
@@ -165,6 +181,14 @@ Used by:
         =>
         gen_config: &mut gen_config;
         gen_key: output_opaque_interfaces
+    );
+
+    let _ = extract_opt_arg!(matches =>
+        key: WRAP_TOP_LEVEL_VARS;
+        converter: str::parse::<bool>;
+        =>
+        gen_config: &mut gen_config;
+        gen_key: wrap_top_level_vars
     );
 
     let output_dir = PathBuf::from(output_dir);

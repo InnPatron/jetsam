@@ -212,13 +212,18 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
 
         match value_type {
             Type::Number => {
-                let value: Expr = self.c_ts_number_py_number(&root_value!(name));
-                let getter = expr!(Fn function!(
-                    =>
-                    stmt!(return value)
-                ));
+                let converted_value: Expr = self.c_ts_number_py_number(&root_value!(name));
 
-                self.overrides.insert(name.to_string(), getter);
+                let overide = if self.options.gen_config.wrap_top_level_vars {
+                    expr!(Fn function!(
+                        =>
+                        stmt!(return converted_value)
+                    ))
+                } else {
+                    converted_value
+                };
+
+                self.overrides.insert(name.to_string(), overide);
 
                 Ok(())
             }

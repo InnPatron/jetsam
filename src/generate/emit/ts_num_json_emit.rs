@@ -117,7 +117,13 @@ impl<'a> JsonEmitter for TsNumJsonOutput<'a> {
 
             // TODO: Add option to wrap variables in getters or leave unaltered
             //   Assuming getters are generated for now
-            Type::Number => json!(["arrow", [], "Number"]),
+            Type::Number => {
+                if self.options.gen_config.wrap_top_level_vars {
+                    json!(["arrow", [], "Number"])
+                } else {
+                    json!("Number")
+                }
+            }
 
             _ => TsNumJsonOutput::in_place_type_to_value(value_type)
                     .map_err(|e| EmitError::Misc(current_module.to_owned(), e))?,
