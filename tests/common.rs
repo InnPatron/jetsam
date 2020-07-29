@@ -37,6 +37,7 @@ pub const ARR_COMPILED_DIR: &'static str = "compiled";
 
 const PYRET_COMPILER_DIR: &'static str = "PYRET_COMPILER_DIR";
 const PYRET_RUNTIME_DIR: &'static str = "PYRET_RUNTIME_DIR";
+const NODE_PATH: &'static str = "NODE_PATH";
 const PYRET_COMPILER_NAME: &'static str = "pyret.jarr";
 
 const TEST_DIR: &'static str = "jetsam-tests";
@@ -56,6 +57,10 @@ pub struct TestEnv {
     /// If that variable is not set, calculate it from the variable denoted by constant PYRET_COMPILER_DIR
     ///     by appending "../runtime"
     pyret_runtime_dir: PathBuf,
+
+    /// By default, assumes `node` is in PATH
+    ///   Otherwise, point to node binary with NODE_PATH
+    node_path: PathBuf,
 }
 
 impl TestEnv {
@@ -66,6 +71,10 @@ impl TestEnv {
             .parent()
             .expect("Ex dir")
             .to_path_buf();
+
+        let node_path = env::var_os(NODE_PATH)
+            .map(PathBuf::from)
+            .unwrap_or(PathBuf::from("node"));
 
         let tmp_dir = {
             let tmp_dir =
@@ -120,6 +129,7 @@ impl TestEnv {
             tmp_dir,
             pyret_compiler_path,
             pyret_runtime_dir,
+            node_path,
         }
     }
 
@@ -161,7 +171,7 @@ impl TestEnv {
     }
 
     pub fn pyret_cmd(&self) -> Command {
-        let mut pyret = Command::new("node");
+        let mut pyret = Command::new(&self.node_path);
         pyret
             .arg(self.pyret_compiler_path.as_path());
 
@@ -194,7 +204,7 @@ impl TestEnv {
     }
 
     pub fn run_pyret_cmd<S1: AsRef<Path>>(&self, module: S1) -> Command {
-        let mut pyret = Command::new("node");
+        let mut pyret = Command::new(&self.node_path);
 
         pyret
             .stderr(Stdio::inherit())
