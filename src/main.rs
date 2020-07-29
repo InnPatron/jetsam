@@ -102,7 +102,12 @@ fn main() {
             default: "true";
             validator: bool_validator;
             help:
-            "Generate Pyret functions around class constructors"
+            "Generate Pyret functions around class constructors";
+            help-long:
+"Generate Pyret functions around class constructors.
+Used by:
+    * TS-FULL
+"
         );
 
         opt_arg!(app =>
@@ -112,7 +117,12 @@ fn main() {
             default: "true";
             validator: bool_validator;
             help:
-            "Generate 1:1 opaque nominal datatypes for Pyret interfaces"
+            "Generate 1:1 opaque nominal datatypes for Pyret interfaces";
+            help-long:
+"Generate 1:1 opaque nominal datatypes for Pyret interfaces
+Used by:
+    * TS-FULL
+"
         );
 
         app
