@@ -23,10 +23,10 @@ macro_rules! py_compiled_file {
 }
 
 #[test]
-fn basic_ts_num_runner() {
+fn basic_ts_num() {
     common::check_aux_bins().unwrap();
 
-    let test_env = common::TestEnv::new("basic_ts_num_runner");
+    let test_env = common::TestEnv::new("basic_ts_num");
 
     test_env.create_tmp_dir(SRC_DIR);
     test_env.create_tmp_dir(BINDING_DIR);
