@@ -78,6 +78,8 @@ fn main() {
                 .long("require-path")
                 .value_name("require path")
                 .takes_value(true)
+                .help("Import path of the TS implementation file relative to the generated bindings file")
+                .default_value("Same directory as the generated bindings file")
                 .required(false))
             .arg(Arg::with_name("OUTPUT FILE STEM")
                 .long("output-file-stem")
@@ -163,6 +165,17 @@ fn main() {
         json: true,
         js: true,
     };
+
+    let require_path = require_path
+        .map(|p| p.to_string())
+        .unwrap_or({
+            let mut buff = PathBuf::new();
+            buff.push("./");
+            buff.push(input_path.file_stem().unwrap());
+            buff.set_extension("js");
+
+            buff.display().to_string()
+        });
 
     let options = compile_opt::CompileOpt {
         input_path,

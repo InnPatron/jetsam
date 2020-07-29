@@ -31,7 +31,7 @@ pub trait JsonEmitter {
 pub trait JsEmitter {
     fn handle_type(&mut self, current_module: &Path, name: &str, typ: &Type) -> Result<(), EmitError>;
     fn handle_value(&mut self, current_module: &Path, name: &str, value_type: &Type) -> Result<(), EmitError>;
-    fn finalize(self, current_module: &Path, default_require_path: String) -> Result<AstModule, EmitError>;
+    fn finalize(self, current_module: &Path) -> Result<AstModule, EmitError>;
 }
 
 struct Context<JS: JsEmitter, JSON: JsonEmitter> {
@@ -136,15 +136,6 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
 
         // Emit JS into file
         let root_path = root_module_path.as_path();
-        let default_require_path: String = {
-            use std::path::PathBuf;
-            let mut buff = PathBuf::new();
-            buff.push("./");
-            buff.push(root_path.file_stem().unwrap());
-            buff.set_extension("js");
-
-            buff.display().to_string()
-        };
         let file =
             File::create(&js_output_path)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
@@ -152,7 +143,7 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
         let file = BufWriter::new(file);
 
         let ast_module = context.js_output
-            .finalize(root_path, default_require_path)?;
+            .finalize(root_path)?;
 
         // NOTE: Cannot use swc_ecma_codegen for whatever reason
         //   Provided emitter appears to rely on SourceMap and Spans

@@ -242,16 +242,11 @@ impl<'a> JsEmitter for TsNumJsOutput<'a> {
         Ok(())
     }
 
-    fn finalize(self, current_module: &Path, default_require_path: String)
+    fn finalize(self, current_module: &Path)
         -> Result<AstModule, EmitError> {
 
-        let require_path = self.options.require_path
-            .as_ref()
-            .map(|p| p.clone())
-            .unwrap_or(&default_require_path);
-
         let mut body = Vec::new();
-        self.prelude(&mut body, &require_path);
+        self.prelude(&mut body, &self.options.require_path);
 
         for (override_key, override_value) in self.overrides.into_iter() {
 
