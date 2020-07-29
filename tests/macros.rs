@@ -54,7 +54,7 @@ macro_rules! make_test {
                 .arg("--ts-flavor")
                 .arg("ts-num")
                 .output()
-                .expect("jetsam failed (i/o error)");
+                .expect(&format!("jetsam failed (`{:#?}`)", jetsam_build_cmd));
 
             if !jetsam_output.status.success() {
                 dbg!(test_env);
@@ -65,7 +65,7 @@ macro_rules! make_test {
                 .pyret_build_cmd(runner, SRC_DIR, ARR_COMPILED_DIR);
             let pyret_output = pyret_build_cmd
                 .output()
-                .expect("pyret failed (i/o error)");
+                .expect(&format!("pyret failed [`{:#?}`]", pyret_build_cmd));
 
             if !pyret_output.status.success() {
                 dbg!(test_env);
