@@ -22,7 +22,18 @@ macro_rules! py_compiled_file {
 
 /// Can get debug result/expected prints by defining env var "DBG_EPRINT"
 macro_rules! make_test {
+
     (BASIC($test_name: ident) expects: $expected: expr) => {
+        make_test!(BASIC($test_name)
+            jetsam-compile: |_, c| c;
+            pyret-compile: |_, c| c;
+            => expects: $expected);
+    };
+
+    (BASIC($test_name: ident)
+    jetsam-compile: $jetsam_compile_override: expr;
+    pyret-compile: $pyret_compile_override: expr;
+    => expects: $expected: expr) => {
 
         #[test]
         fn $test_name() {
@@ -48,8 +59,11 @@ macro_rules! make_test {
                 include_str!(concat!("./data/", stringify!($test_name), ".js"))
             );
 
-            let mut jetsam_build_cmd = test_env
-                .jetsam_build_cmd(binding_file!(concat!(stringify!($test_name), ".d.ts")), BINDING_DIR);
+            let mut jetsam_build_cmd = {
+                let tmp = test_env
+                    .jetsam_build_cmd(binding_file!(concat!(stringify!($test_name), ".d.ts")), BINDING_DIR);
+                $jetsam_compile_override(&test_env, tmp)
+            };
             let jetsam_output = jetsam_build_cmd
                 .arg("--ts-flavor")
                 .arg("ts-num")
@@ -61,8 +75,12 @@ macro_rules! make_test {
                 panic!("Command `{:?}` failed with code: {}", jetsam_build_cmd, jetsam_output.status);
             }
 
-            let mut pyret_build_cmd = test_env
-                .pyret_build_cmd(runner, SRC_DIR, ARR_COMPILED_DIR);
+            let mut pyret_build_cmd = {
+                let tmp = test_env
+                    .pyret_build_cmd(runner, SRC_DIR, ARR_COMPILED_DIR);
+
+                $pyret_compile_override(&test_env, tmp)
+            };
             let pyret_output = pyret_build_cmd
                 .output()
                 .expect(&format!("pyret failed [`{:#?}`]", pyret_build_cmd));
