@@ -13,6 +13,25 @@ use clap::{Arg, App};
 
 use ts::TsFlavor;
 
+const TS_NUM_STRINGS: &'static [&'static str] = &[
+    "ts-num",
+    "TS-NUM",
+];
+const TS_FULL_STRINGS: &'static [&'static str] = &[
+    "ts-full",
+    "TS-FULL",
+];
+const TS_FLAVOR_STRINGS: &'static [&'static str] = &[
+    "ts-num",
+    "TS-NUM",
+
+    "ts-full",
+    "TS-FULL",
+];
+
+const DEFAULT_TS_FLAVOR: (TsFlavor, &'static str) = (TsFlavor::TsNum, "TS-NUM");
+
+
 fn output_directory_validator(arg: String) -> Result<(), String> {
     if PathBuf::from(arg).is_dir() {
         Ok(())
@@ -27,14 +46,15 @@ fn bool_validator(arg: String) -> Result<(), String> {
 
 fn construct_ts_flavor(arg: Option<&str>) -> Result<TsFlavor, String> {
 
-    arg.map(|s| match s {
-        "ts-num" | "tsnum" | "NUM" => Ok(TsFlavor::TsNum),
-
-        "all" | "any" | "full" => Ok(TsFlavor::TsFull),
-
-        _ => Err(format!("Unknown TS flavor \"{}\"", s)),
-
-    }).unwrap_or(Ok(TsFlavor::TsFull))
+    arg.map(|s| {
+        if TS_NUM_STRINGS.contains(&s) {
+            Ok(TsFlavor::TsNum)
+        } else if TS_FULL_STRINGS.contains(&s) {
+            Ok(TsFlavor::TsFull)
+        } else {
+            Err(format!("Unknown TS flavor \"{}\"", s))
+        }
+    }).unwrap_or(Ok(DEFAULT_TS_FLAVOR.0))
 }
 
 fn main() {
@@ -44,18 +64,19 @@ fn main() {
             .arg(Arg::with_name("INPUT")
                 .short("i")
                 .long("input")
-                .value_name("ROOT_MODULE")
+                .value_name("root TS module")
                 .takes_value(true)
                 .required(true))
             .arg(Arg::with_name("OUTPUT")
                 .short("o")
                 .long("output")
-                .value_name("DIR_PATH")
+                .value_name("output directory")
                 .takes_value(true)
                 .required(true)
                 .validator(output_directory_validator))
             .arg(Arg::with_name("REQUIRE PATH")
                 .long("require-path")
+                .value_name("require path")
                 .takes_value(true)
                 .required(false))
             .arg(Arg::with_name("OUTPUT FILE STEM")
@@ -65,7 +86,11 @@ fn main() {
             .arg(Arg::with_name("TARGET TS FLAVOR")
                 .long("ts-flavor")
                 .short("tsf")
+                .value_name("TS flavor")
+                .possible_values(TS_FLAVOR_STRINGS)
+                .default_value(DEFAULT_TS_FLAVOR.1)
                 .takes_value(true)
+                .help("TypeScript subset to accept as input")
                 .required(false));
 
         opt_arg!(app =>
