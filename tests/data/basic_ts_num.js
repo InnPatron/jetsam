@@ -15,5 +15,7 @@ module.exports = {
         return function(a1) {
             return x(a1, 100);
         }
-    }
+    },
+
+    "my_var": 9000,
 };

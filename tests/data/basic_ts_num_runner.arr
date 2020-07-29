@@ -13,7 +13,8 @@ G.print(NUM.foo(-27.5))           # Expect -55
 G.print("\n")
 G.print(NUM.foo(99/2))           # Expect 99
 
-
+G.print("\n")
+G.print(NUM.my_var())           # Expect 9000
 
 
 G.print("\nDone\n")
