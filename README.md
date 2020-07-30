@@ -39,7 +39,7 @@ See `jetsam --help` for more info
   * Need a specific Pyret anchor compiler (until commits are merged into trunk)
     * https://github.com/InnPatron/pyret-lang
     * `anchor` branch
-    * Commit: e557b96eda677b5425fb88b72c8c02620156e7cf
+    * Commit: `e557b96eda677b5425fb88b72c8c02620156e7cf`
   * Runtime files are located in `$PYRET_COMPILER_DIR/../runtime/`
     * Alternatively, set `PYRET_RUNTIME_DIR`
 * Need `node` in your `PATH`
