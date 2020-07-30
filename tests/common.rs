@@ -25,7 +25,7 @@ use std::error;
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::process::{self, Command, Stdio};
+use std::process::{self, Command};
 use std::io::{self, Write};
 use std::fs::{self, File};
 use std::thread;
@@ -165,7 +165,6 @@ impl TestEnv {
         let output_dir = self.tmp_dir.join(output_dir);
 
         cmd
-            .stderr(Stdio::inherit())
             .arg("-i")
             .arg(input_path)
             .arg("-o")
@@ -187,7 +186,6 @@ impl TestEnv {
         let mut pyret = self.pyret_cmd();
 
         pyret
-            .stderr(Stdio::inherit())
 
             .arg("--compiled-dir")
             .arg(self.tmp_dir.join(compiled_path))
@@ -211,7 +209,6 @@ impl TestEnv {
         let mut pyret = Command::new(&self.node_path);
 
         pyret
-            .stderr(Stdio::inherit())
             .arg(self.tmp_dir.join(module));
 
         pyret

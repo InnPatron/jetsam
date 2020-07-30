@@ -81,7 +81,11 @@ macro_rules! make_test {
                 .expect(&format!("jetsam failed (`{:#?}`)", jetsam_build_cmd));
 
             if !jetsam_output.status.success() {
+                let stderr: String = String::from_utf8(jetsam_output.stderr)
+                    .expect("Jetsam build did NOT emit utf8 in stderr");
+
                 dbg!(test_env);
+                eprintln!("\n=======cmd stderr=======\n\n{}\n\n=======end cmd stderr=======\n", stderr);
                 panic!("Command `{:?}` failed with code: {}", jetsam_build_cmd, jetsam_output.status);
             }
 
@@ -96,19 +100,26 @@ macro_rules! make_test {
                 .expect(&format!("pyret failed [`{:#?}`]", pyret_build_cmd));
 
             if !pyret_output.status.success() {
+                let stderr: String = String::from_utf8(pyret_output.stderr)
+                    .expect("Pyret build did NOT emit utf8 in stderr");
+
                 dbg!(test_env);
+                eprintln!("\n=======cmd stderr=======\n\n{}\n\n=======end cmd stderr=======\n", stderr);
                 panic!("Command `{:?}` failed with code: {}", pyret_build_cmd, pyret_output.status);
             }
 
             let mut run_pyret_cmd = test_env
                 .run_pyret_cmd(py_compiled_file!(project => concat!(stringify!($test_data_name), "_runner.arr.js")));
             let run_output = run_pyret_cmd
-                //.stdout(std::process::Stdio::inherit())
                 .output()
                 .expect("pyret execution failed (i/o error)");
 
             if !run_output.status.success() {
+                let stderr: String = String::from_utf8(run_output.stderr)
+                    .expect("Program run (node) did NOT emit utf8 in stderr");
+
                 dbg!(test_env);
+                eprintln!("\n=======cmd stderr=======\n\n{}\n\n=======end cmd stderr=======\n", stderr);
                 panic!("Command `{:?}` failed with code: {}", run_pyret_cmd, run_output.status);
             }
 
