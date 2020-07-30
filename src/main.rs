@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate derive_builder;
+#[macro_use]
+extern crate serde;
 
 #[macro_use]
 mod macros;
