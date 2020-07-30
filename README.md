@@ -5,7 +5,7 @@
 * Currently does NOT wrap JS code to guard against Pyret numbers
 
 ## Building
-Requires Rust (tested on 1.41 stable)
+Requires [Rust](https://www.rust-lang.org/) (tested on 1.41 stable) and Cargo
 
 ## Usage
 
@@ -24,3 +24,5 @@ See `jetsam --help` for more info
     * Alternatively, set `PYRET_RUNTIME_DIR`
 * Need `node` in your `PATH`
   * Alternatively, set `NODE_PATH`
+* Run `cargo test`
+* All tests should pass
