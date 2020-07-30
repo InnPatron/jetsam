@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use std::convert::TryFrom;
 use std::sync::Arc;
 
-use swc_common::{BytePos, SyntaxContext, Span, SourceMap};
-use swc_ecma_parser::{lexer::Lexer, Parser, Session, SourceFileInput, Syntax, TsConfig, JscTarget};
+use swc_common::{BytePos, SyntaxContext, Span, SourceMap, errors::Handler};
+use swc_ecma_parser::{lexer::Lexer, Parser, SourceFileInput, Syntax, TsConfig, JscTarget};
 use swc_ecma_ast::Module;
 
 use super::bind_common;
@@ -42,7 +42,7 @@ pub struct ModuleData {
 ///   and map to their canonical path.
 pub fn init<'a>(
     source_map: Arc<SourceMap>,
-    session: Session<'a>,
+    handler: Handler,
     root_module_path: PathBuf,
 ) -> Result<ParsedModuleCache, BindGenError> {
 
@@ -74,7 +74,7 @@ pub fn init<'a>(
 
         let module_ast = open_module(
             &source_map,
-            session,
+            &handler,
             &current_path,
             span.clone(),
         )?;
@@ -196,7 +196,7 @@ fn scan_dependencies(
 
 fn open_module<'a>(
     source_map: &Arc<SourceMap>,
-    session: Session<'a>,
+    handler: &Handler,
     path: &CanonPath,
     span: Span,
 ) -> Result<Module, BindGenError> {
@@ -212,7 +212,6 @@ fn open_module<'a>(
         })?;
 
     let lexer = Lexer::new(
-        session,
         Syntax::Typescript(TsConfig {
             tsx: false,
             decorators: false,
@@ -225,12 +224,12 @@ fn open_module<'a>(
         None,
     );
 
-    let mut parser = Parser::new_from(session, lexer);
+    let mut parser = Parser::new_from(lexer);
 
     let mut module: Module = parser
         .parse_module()
         .map_err(|mut e| {
-            e.emit();
+            e.into_diagnostic(handler).emit();
 
             BindGenError {
                 kind: BindGenErrorKind::ParserError,

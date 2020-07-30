@@ -1,18 +1,24 @@
-mod ts_full_js_emit;
-mod ts_full_json_emit;
+#[macro_use]
+mod macros;
+
+//mod ts_full_js_emit;
+//mod ts_full_json_emit;
 
 mod ts_num_js_emit;
 mod ts_num_json_emit;
 
+
 use std::collections::HashSet;
 use std::path::Path;
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 
+use swc_ecma_ast::Module as AstModule;
+
+use crate::generate::js_pp::PrettyPrinter;
 use crate::generate::structures::*;
 use crate::generate::error::EmitError;
 use crate::generate::typify_graph::ModuleGraph;
-use crate::generate::config::EmitConfig;
 use crate::generate::type_structs::Type;
 use crate::compile_opt::CompileOpt;
 
@@ -25,7 +31,7 @@ pub trait JsonEmitter {
 pub trait JsEmitter {
     fn handle_type(&mut self, current_module: &Path, name: &str, typ: &Type) -> Result<(), EmitError>;
     fn handle_value(&mut self, current_module: &Path, name: &str, value_type: &Type) -> Result<(), EmitError>;
-    fn finalize(self, current_module: &Path, default_require_path: String) -> Result<String, EmitError>;
+    fn finalize(self, current_module: &Path) -> Result<AstModule, EmitError>;
 }
 
 struct Context<JS: JsEmitter, JSON: JsonEmitter> {
@@ -33,18 +39,33 @@ struct Context<JS: JsEmitter, JSON: JsonEmitter> {
     js_output: JS,
 }
 
-pub fn ts_full_emit(
+pub fn ts_num_emit(
     options: &CompileOpt,
     root_module_path: &CanonPath,
     typed_graph: &ModuleGraph,
 ) -> Result<(), EmitError> {
-    use self::ts_full_js_emit::TsFullJsOutput as JsEmitter;
-    use self::ts_full_json_emit::TsFullJsonOutput as JsonEmitter;
+    use self::ts_num_js_emit::TsNumJsOutput as JsEmitter;
+    use self::ts_num_json_emit::TsNumJsonOutput as JsonEmitter;
 
     let js_emitter = JsEmitter::new(options);
     let json_emitter = JsonEmitter::new(options);
 
     emit(options, root_module_path, typed_graph, js_emitter, json_emitter)
+}
+
+pub fn ts_full_emit(
+    options: &CompileOpt,
+    root_module_path: &CanonPath,
+    typed_graph: &ModuleGraph,
+) -> Result<(), EmitError> {
+    //use self::ts_full_js_emit::TsFullJsOutput as JsEmitter;
+    //use self::ts_full_json_emit::TsFullJsonOutput as JsonEmitter;
+
+    //let js_emitter = JsEmitter::new(options);
+    //let json_emitter = JsonEmitter::new(options);
+
+    //emit(options, root_module_path, typed_graph, js_emitter, json_emitter)
+    todo!("TS-FULL")
 }
 
 pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
@@ -115,25 +136,19 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
 
         // Emit JS into file
         let root_path = root_module_path.as_path();
-        let default_require_path: String = {
-            use std::path::PathBuf;
-            let mut buff = PathBuf::new();
-            buff.push("./");
-            buff.push(root_path.file_stem().unwrap());
-            buff.set_extension("js");
-
-            buff.display().to_string()
-        };
-        let mut file =
-            File::create(js_output_path)
+        let file =
+            File::create(&js_output_path)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
-        let output = context.js_output
-            .finalize(root_path, default_require_path)?;
+        let file = BufWriter::new(file);
 
-        file.write_all(output.as_bytes())
+        let ast_module = context.js_output
+            .finalize(root_path)?;
+
+        // NOTE: Cannot use swc_ecma_codegen for whatever reason
+        //   Provided emitter appears to rely on SourceMap and Spans
+        let _ = PrettyPrinter::print(file, &ast_module)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
-
     });
 
     Ok(())
