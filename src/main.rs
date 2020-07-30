@@ -76,8 +76,8 @@ fn main() {
                 .takes_value(true)
                 .help(common::OPTION_TS_FLAVOR_HELP)
                 .required(false))
-            .arg(Arg::with_name(common::OPTIONS_BASE_CONFIG)
-                .long(common::OPTIONS_BASE_CONFIG)
+            .arg(Arg::with_name(common::OPTIONS_GEN_CONFIG)
+                .long(common::OPTIONS_GEN_CONFIG)
                 .value_name("base config path")
                 .takes_value(true)
                 .help("Path to base configuration path")
@@ -136,7 +136,7 @@ fn main() {
         matches.value_of("OUTPUT FILE STEM");
 
 
-    let mut gen_config = match matches.value_of(common::OPTIONS_BASE_CONFIG)
+    let mut gen_config = match matches.value_of(common::OPTIONS_GEN_CONFIG)
         .map(load_config)
         .unwrap_or(Ok(generate::GenConfig::default())) {
 

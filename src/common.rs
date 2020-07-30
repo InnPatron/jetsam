@@ -20,7 +20,7 @@ pub const TS_FLAVOR_STRINGS: &'static [&'static str] = &[
 
 pub const DEFAULT_TS_FLAVOR: (TsFlavor, &'static str) = (TsFlavor::TsNum, "TS-NUM");
 
-const_str!(OPTIONS_BASE_CONFIG => "base-config");
+const_str!(OPTIONS_GEN_CONFIG => "gen-config");
 
 //
 // ======================
