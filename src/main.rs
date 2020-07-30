@@ -6,6 +6,7 @@ mod macros;
 mod generate;
 mod ts;
 mod compile_opt;
+mod common;
 
 use std::path::PathBuf;
 
@@ -13,23 +14,12 @@ use clap::{Arg, App};
 
 use ts::TsFlavor;
 
-const TS_NUM_STRINGS: &'static [&'static str] = &[
-    "ts-num",
-    "TS-NUM",
-];
-const TS_FULL_STRINGS: &'static [&'static str] = &[
-    "ts-full",
-    "TS-FULL",
-];
-const TS_FLAVOR_STRINGS: &'static [&'static str] = &[
-    "ts-num",
-    "TS-NUM",
-
-    "ts-full",
-    "TS-FULL",
-];
-
-const DEFAULT_TS_FLAVOR: (TsFlavor, &'static str) = (TsFlavor::TsNum, "TS-NUM");
+use common::{
+    TS_NUM_STRINGS,
+    TS_FULL_STRINGS,
+    TS_FLAVOR_STRINGS,
+    DEFAULT_TS_FLAVOR,
+};
 
 
 fn output_directory_validator(arg: String) -> Result<(), String> {
