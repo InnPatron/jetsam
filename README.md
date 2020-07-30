@@ -12,3 +12,15 @@ Requires Rust (tested on 1.41 stable)
 `jetsam -i ROOT_MODULE_D_TS -o OUTUPT_DIR`
 
 See `jetsam --help` for more info
+
+## Running the Tests
+
+* Need to set `PYRET_COMPILER_DIR` to a built Pyret compiler (`pyret.jarr`)
+  * Need a specific Pyret anchor compiler (until commits are merged into trunk)
+    * https://github.com/InnPatron/pyret-lang
+    * `anchor` branch
+    * Commit: e557b96eda677b5425fb88b72c8c02620156e7cf
+  * Runtime files are located in `$PYRET_COMPILER_DIR/../runtime/`
+    * Alternatively, set `PYRET_RUNTIME_DIR`
+* Need `node` in your `PATH`
+  * Alternatively, set `NODE_PATH`
