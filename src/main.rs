@@ -16,14 +16,6 @@ use clap::{Arg, App};
 
 use ts::TsFlavor;
 
-use common::{
-    TS_NUM_STRINGS, TS_FULL_STRINGS,
-    TS_FLAVOR_STRINGS, DEFAULT_TS_FLAVOR,
-    OPTION_TS_FLAVOR, OPTION_CONSTRUCTOR_WRAPPERS,
-    OPTION_OPAQUE_INTERFACES, OPTION_WRAP_TOP_LEVEL_VARS,
-};
-
-
 fn output_directory_validator(arg: String) -> Result<(), String> {
     if PathBuf::from(arg).is_dir() {
         Ok(())
@@ -39,14 +31,14 @@ fn bool_validator(arg: String) -> Result<(), String> {
 fn construct_ts_flavor(arg: Option<&str>) -> Result<TsFlavor, String> {
 
     arg.map(|s| {
-        if TS_NUM_STRINGS.contains(&s) {
+        if common::TS_NUM_STRINGS.contains(&s) {
             Ok(TsFlavor::TsNum)
-        } else if TS_FULL_STRINGS.contains(&s) {
+        } else if common::TS_FULL_STRINGS.contains(&s) {
             Ok(TsFlavor::TsFull)
         } else {
             Err(format!("Unknown TS flavor \"{}\"", s))
         }
-    }).unwrap_or(Ok(DEFAULT_TS_FLAVOR.0))
+    }).unwrap_or(Ok(common::DEFAULT_TS_FLAVOR.0))
 }
 
 fn main() {
@@ -76,19 +68,20 @@ fn main() {
                 .long("output-file-stem")
                 .takes_value(true)
                 .required(false))
-            .arg(Arg::with_name(OPTION_TS_FLAVOR)
-                .long(OPTION_TS_FLAVOR)
+            .arg(Arg::with_name(common::OPTION_TS_FLAVOR)
+                .long(common::OPTION_TS_FLAVOR)
                 .short("tsf")
                 .value_name("TS flavor")
-                .possible_values(TS_FLAVOR_STRINGS)
-                .default_value(DEFAULT_TS_FLAVOR.1)
+                .possible_values(common::TS_FLAVOR_STRINGS)
+                .default_value(common::DEFAULT_TS_FLAVOR.1)
                 .takes_value(true)
                 .help("TypeScript subset to accept as input")
                 .required(false));
 
+
         opt_arg!(app =>
-            key: OPTION_CONSTRUCTOR_WRAPPERS;
-            long: OPTION_CONSTRUCTOR_WRAPPERS;
+            key: common::OPTION_CONSTRUCTOR_WRAPPERS;
+            long: common::OPTION_CONSTRUCTOR_WRAPPERS;
             values: bool_values!();
             validator: bool_validator;
             help:
@@ -103,8 +96,8 @@ Used by:
         );
 
         opt_arg!(app =>
-            key: OPTION_OPAQUE_INTERFACES;
-            long: OPTION_OPAQUE_INTERFACES;
+            key: common::OPTION_OPAQUE_INTERFACES;
+            long: common::OPTION_OPAQUE_INTERFACES;
             values: bool_values!();
             validator: bool_validator;
             help:
@@ -118,8 +111,8 @@ Used by:
         );
 
         opt_arg!(app =>
-            key: OPTION_WRAP_TOP_LEVEL_VARS;
-            long: OPTION_WRAP_TOP_LEVEL_VARS;
+            key: common::OPTION_WRAP_TOP_LEVEL_VARS;
+            long: common::OPTION_WRAP_TOP_LEVEL_VARS;
             values: bool_values!();
             validator: bool_validator;
             help:
@@ -136,7 +129,7 @@ Used by:
         app
     }.get_matches();
 
-    let target_ts_flavor = match construct_ts_flavor(matches.value_of(OPTION_TS_FLAVOR)) {
+    let target_ts_flavor = match construct_ts_flavor(matches.value_of(common::OPTION_TS_FLAVOR)) {
         Ok(ts_flavor) => ts_flavor,
 
         Err(e) => {
@@ -161,7 +154,7 @@ Used by:
     let mut gen_config = generate::GenConfig::default();
 
     let _ = extract_opt_arg!(matches =>
-        key: OPTION_CONSTRUCTOR_WRAPPERS;
+        key: common::OPTION_CONSTRUCTOR_WRAPPERS;
         converter: str::parse::<bool>;
         =>
         gen_config: &mut gen_config;
@@ -169,7 +162,7 @@ Used by:
     );
 
     let _ = extract_opt_arg!(matches =>
-        key: OPTION_OPAQUE_INTERFACES;
+        key: common::OPTION_OPAQUE_INTERFACES;
         converter: str::parse::<bool>;
         =>
         gen_config: &mut gen_config;
@@ -177,7 +170,7 @@ Used by:
     );
 
     let _ = extract_opt_arg!(matches =>
-        key: OPTION_WRAP_TOP_LEVEL_VARS;
+        key: common::OPTION_WRAP_TOP_LEVEL_VARS;
         converter: str::parse::<bool>;
         =>
         gen_config: &mut gen_config;
