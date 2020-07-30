@@ -30,7 +30,7 @@ make_test!(FULL(test => config_unwrapped_ts_num, data => unwrapped_ts_num)
 
 
         c
-            .arg("--base-config")
+            .arg("--gen-config")
             .arg(env.get_tmp_path("config.json"));
 
         c
