@@ -133,6 +133,10 @@ impl TestEnv {
         }
     }
 
+    pub fn get_tmp_path<P: AsRef<Path>>(&self, p: P) -> PathBuf {
+        self.tmp_dir.join(p)
+    }
+
     pub fn create_tmp_dir<P: AsRef<Path>>(&self, path: P) {
         let path = self.tmp_dir.join(path);
         nice_err(&path, repeat(|| fs::create_dir_all(&path)));
