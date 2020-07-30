@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate derive_builder;
-#[macro_use]
-extern crate serde;
 
 #[macro_use]
 mod macros;
@@ -10,6 +8,7 @@ mod ts;
 mod compile_opt;
 mod common;
 
+use std::error::Error;
 use std::path::PathBuf;
 
 use clap::{Arg, App};
@@ -76,8 +75,13 @@ fn main() {
                 .default_value(common::DEFAULT_TS_FLAVOR.1)
                 .takes_value(true)
                 .help("TypeScript subset to accept as input")
+                .required(false))
+            .arg(Arg::with_name(common::OPTIONS_BASE_CONFIG)
+                .long(common::OPTIONS_BASE_CONFIG)
+                .value_name("base config path")
+                .takes_value(true)
+                .help("Path to base configuration path")
                 .required(false));
-
 
         opt_arg!(app =>
             key: common::OPTION_CONSTRUCTOR_WRAPPERS;
@@ -151,7 +155,18 @@ Used by:
         matches.value_of("OUTPUT FILE STEM");
 
 
-    let mut gen_config = generate::GenConfig::default();
+    let mut gen_config = match matches.value_of(common::OPTIONS_BASE_CONFIG)
+        .map(load_config)
+        .unwrap_or(Ok(generate::GenConfig::default())) {
+
+        Ok(b) => b,
+
+        Err(e) => {
+            eprintln!("{}", e);
+            eprintln!("Unable to open the base config file");
+            std::process::exit(1);
+        }
+    };
 
     let _ = extract_opt_arg!(matches =>
         key: common::OPTION_CONSTRUCTOR_WRAPPERS;
@@ -206,4 +221,16 @@ Used by:
         ts_flavor: target_ts_flavor,
     };
     generate::gen(options);
+}
+
+fn load_config(path: &str) -> Result<generate::GenConfig, Box<dyn Error>> {
+    use std::io::BufReader;
+    use std::fs::File;
+    use serde_json::de;
+
+    let file = BufReader::new(File::open(path)?);
+
+    let gen_config: generate::GenConfig = de::from_reader(file)?;
+
+    Ok(gen_config)
 }
