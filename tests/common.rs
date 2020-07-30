@@ -251,7 +251,7 @@ pub fn line_separated_expected<T: IntoIterator<Item=I>, I: std::fmt::Display>(it
     let mut output = String::new();
 
     for t in iter.into_iter() {
-        std::fmt::write(&mut output, format_args!("{}\n", t));
+        std::fmt::write(&mut output, format_args!("{}\n", t)).unwrap();
     }
 
     output.push_str("All tests pass\n");
