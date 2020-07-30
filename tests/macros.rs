@@ -34,6 +34,16 @@ macro_rules! make_test {
     jetsam-compile: $jetsam_compile_override: expr;
     pyret-compile: $pyret_compile_override: expr;
     => expects: $expected: expr) => {
+        make_test!(FULL(test => $test_name, data => $test_name)
+            jetsam-compile: $jetsam_compile_override;
+            pyret-compile: $pyret_compile_override;
+            => expects: $expected);
+    };
+
+    (FULL(test => $test_name: ident, data => $test_data_name: ident)
+    jetsam-compile: $jetsam_compile_override: expr;
+    pyret-compile: $pyret_compile_override: expr;
+    => expects: $expected: expr) => {
 
         #[test]
         fn $test_name() {
@@ -42,26 +52,26 @@ macro_rules! make_test {
 
             let test_env = common::TestEnv::new(stringify!($test_name));
 
-            let runner = concat!(stringify!($test_name), "_runner.arr");
+            let runner = concat!(stringify!($test_data_name), "_runner.arr");
 
             test_env.create_tmp_dir(SRC_DIR);
             test_env.create_tmp_dir(BINDING_DIR);
             test_env.create_tmp_file(
                 src_file!(runner),
-                include_str!(concat!("./data/", stringify!($test_name), "_runner.arr"))
+                include_str!(concat!("./data/", stringify!($test_data_name), "_runner.arr"))
             );
             test_env.create_tmp_file(
-                binding_file!(concat!(stringify!($test_name), ".d.ts")),
-                include_str!(concat!("./data/", stringify!($test_name), ".d.ts"))
+                binding_file!(concat!(stringify!($test_data_name), ".d.ts")),
+                include_str!(concat!("./data/", stringify!($test_data_name), ".d.ts"))
             );
             test_env.create_tmp_file(
-                binding_file!(concat!(stringify!($test_name), ".js")),
-                include_str!(concat!("./data/", stringify!($test_name), ".js"))
+                binding_file!(concat!(stringify!($test_data_name), ".js")),
+                include_str!(concat!("./data/", stringify!($test_data_name), ".js"))
             );
 
             let mut jetsam_build_cmd = {
                 let tmp = test_env
-                    .jetsam_build_cmd(binding_file!(concat!(stringify!($test_name), ".d.ts")), BINDING_DIR);
+                    .jetsam_build_cmd(binding_file!(concat!(stringify!($test_data_name), ".d.ts")), BINDING_DIR);
                 $jetsam_compile_override(&test_env, tmp)
             };
             let jetsam_output = jetsam_build_cmd
@@ -91,7 +101,7 @@ macro_rules! make_test {
             }
 
             let mut run_pyret_cmd = test_env
-                .run_pyret_cmd(py_compiled_file!(project => concat!(stringify!($test_name), "_runner.arr.js")));
+                .run_pyret_cmd(py_compiled_file!(project => concat!(stringify!($test_data_name), "_runner.arr.js")));
             let run_output = run_pyret_cmd
                 //.stdout(std::process::Stdio::inherit())
                 .output()
