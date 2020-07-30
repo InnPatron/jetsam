@@ -4,6 +4,12 @@ macro_rules! const_str {
     }
 }
 
+macro_rules! gen_help_str {
+    ($name: ident => $val: expr) => {
+        pub const $name: &'static str = concat!("[GEN] ", $val);
+    }
+}
+
 macro_rules! bool_values {
     () => {
         &["true", "false"]

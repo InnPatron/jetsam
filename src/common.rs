@@ -52,11 +52,11 @@ const_str!(OPTION_REQUIRE_PATH_HELP =>
 "Import path of the TS implementation file relative to the generated bindings file [default: Same directory as the generated bindings file]"
 );
 
-const_str!(OPTION_CONSTRUCTOR_WRAPPERS_HELP =>
+gen_help_str!(OPTION_CONSTRUCTOR_WRAPPERS_HELP =>
 "Generate Pyret functions around class constructors"
 );
 
-const_str!(OPTION_CONSTRUCTOR_WRAPPERS_HELP_LONG =>
+gen_help_str!(OPTION_CONSTRUCTOR_WRAPPERS_HELP_LONG =>
 "Generate Pyret functions around class constructors.
 Used by:
     * TS-FULL
@@ -65,12 +65,11 @@ Used by:
 "
 );
 
-const_str!(OPTION_OPAQUE_INTERFACES_HELP =>
+gen_help_str!(OPTION_OPAQUE_INTERFACES_HELP =>
 "Generate 1:1 opaque nominal datatypes for Pyret interfaces"
 );
 
-
-const_str!(OPTION_OPAQUE_INTERFACES_HELP_LONG =>
+gen_help_str!(OPTION_OPAQUE_INTERFACES_HELP_LONG =>
 "Generate 1:1 opaque nominal datatypes for Pyret interfaces
 Used by:
     * TS-FULL
@@ -78,11 +77,11 @@ Used by:
 "
 );
 
-const_str!(OPTION_WRAP_TOP_LEVEL_VARS_HELP =>
+gen_help_str!(OPTION_WRAP_TOP_LEVEL_VARS_HELP =>
 "Generate converter getters around exported top-level variables"
 );
 
-const_str!(OPTION_WRAP_TOP_LEVEL_VARS_HELP_LONG =>
+gen_help_str!(OPTION_WRAP_TOP_LEVEL_VARS_HELP_LONG =>
 "Generate converter getters around exported top-level variables
 Used by:
     * TS-FULL
