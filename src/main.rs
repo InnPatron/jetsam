@@ -78,9 +78,10 @@ fn main() {
                 .required(false))
             .arg(Arg::with_name(common::OPTIONS_GEN_CONFIG)
                 .long(common::OPTIONS_GEN_CONFIG)
-                .value_name("base config path")
+                .value_name("codegen config path")
                 .takes_value(true)
-                .help("Path to base configuration path")
+                .help(common::OPTIONS_GEN_CONFIG_HELP)
+                .long_help(common::OPTIONS_GEN_CONFIG_HELP_LONG)
                 .required(false));
 
         opt_arg!(app =>

@@ -22,6 +22,15 @@ pub const DEFAULT_TS_FLAVOR: (TsFlavor, &'static str) = (TsFlavor::TsNum, "TS-NU
 
 const_str!(OPTIONS_GEN_CONFIG => "gen-config");
 
+const_str!(OPTIONS_GEN_CONFIG_HELP =>
+"Path to codegen configuration JSON file. Only affects [GEN] options"
+);
+
+const_str!(OPTIONS_GEN_CONFIG_HELP_LONG =>
+"Path to codegen configuration JSON file. Only affects [GEN] options.
+Values in the config file are overwritten by CLI flags."
+);
+
 //
 // ======================
 // Codegen option strings
