@@ -352,6 +352,7 @@ dependencies = [
  "clap",
  "derive_builder",
  "indexmap",
+ "serde",
  "serde_json",
  "swc_atoms",
  "swc_common",

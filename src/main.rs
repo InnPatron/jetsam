@@ -6,31 +6,14 @@ mod macros;
 mod generate;
 mod ts;
 mod compile_opt;
+mod common;
 
+use std::error::Error;
 use std::path::PathBuf;
 
 use clap::{Arg, App};
 
 use ts::TsFlavor;
-
-const TS_NUM_STRINGS: &'static [&'static str] = &[
-    "ts-num",
-    "TS-NUM",
-];
-const TS_FULL_STRINGS: &'static [&'static str] = &[
-    "ts-full",
-    "TS-FULL",
-];
-const TS_FLAVOR_STRINGS: &'static [&'static str] = &[
-    "ts-num",
-    "TS-NUM",
-
-    "ts-full",
-    "TS-FULL",
-];
-
-const DEFAULT_TS_FLAVOR: (TsFlavor, &'static str) = (TsFlavor::TsNum, "TS-NUM");
-
 
 fn output_directory_validator(arg: String) -> Result<(), String> {
     if PathBuf::from(arg).is_dir() {
@@ -47,14 +30,14 @@ fn bool_validator(arg: String) -> Result<(), String> {
 fn construct_ts_flavor(arg: Option<&str>) -> Result<TsFlavor, String> {
 
     arg.map(|s| {
-        if TS_NUM_STRINGS.contains(&s) {
+        if common::TS_NUM_STRINGS.contains(&s) {
             Ok(TsFlavor::TsNum)
-        } else if TS_FULL_STRINGS.contains(&s) {
+        } else if common::TS_FULL_STRINGS.contains(&s) {
             Ok(TsFlavor::TsFull)
         } else {
             Err(format!("Unknown TS flavor \"{}\"", s))
         }
-    }).unwrap_or(Ok(DEFAULT_TS_FLAVOR.0))
+    }).unwrap_or(Ok(common::DEFAULT_TS_FLAVOR.0))
 }
 
 fn main() {
@@ -78,73 +61,61 @@ fn main() {
                 .long("require-path")
                 .value_name("require path")
                 .takes_value(true)
-                .help("Import path of the TS implementation file relative to the generated bindings file [default: Same directory as the generated bindings file]")
+                .help(common::OPTION_REQUIRE_PATH_HELP)
                 .required(false))
             .arg(Arg::with_name("OUTPUT FILE STEM")
                 .long("output-file-stem")
                 .takes_value(true)
                 .required(false))
-            .arg(Arg::with_name("TARGET TS FLAVOR")
-                .long("ts-flavor")
+            .arg(Arg::with_name(common::OPTION_TS_FLAVOR)
+                .long(common::OPTION_TS_FLAVOR)
                 .short("tsf")
                 .value_name("TS flavor")
-                .possible_values(TS_FLAVOR_STRINGS)
-                .default_value(DEFAULT_TS_FLAVOR.1)
+                .possible_values(common::TS_FLAVOR_STRINGS)
+                .default_value(common::DEFAULT_TS_FLAVOR.1)
                 .takes_value(true)
-                .help("TypeScript subset to accept as input")
+                .help(common::OPTION_TS_FLAVOR_HELP)
+                .required(false))
+            .arg(Arg::with_name(common::OPTIONS_GEN_CONFIG)
+                .long(common::OPTIONS_GEN_CONFIG)
+                .value_name("codegen config path")
+                .takes_value(true)
+                .help(common::OPTIONS_GEN_CONFIG_HELP)
+                .long_help(common::OPTIONS_GEN_CONFIG_HELP_LONG)
                 .required(false));
 
         opt_arg!(app =>
-            key: OUTPUT_CONSTRUCTOR_WRAPPERS;
-            long: "constructor-wrappers";
+            key: common::OPTION_CONSTRUCTOR_WRAPPERS;
+            long: common::OPTION_CONSTRUCTOR_WRAPPERS;
             values: bool_values!();
             validator: bool_validator;
-            help:
-            "Generate Pyret functions around class constructors";
-            help-long:
-"Generate Pyret functions around class constructors.
-Used by:
-    * TS-FULL
-
-[default: true]
-"
+            help: common::OPTION_CONSTRUCTOR_WRAPPERS_HELP;
+            help-long: common::OPTION_CONSTRUCTOR_WRAPPERS_HELP_LONG
         );
 
         opt_arg!(app =>
-            key: OUTPUT_OPAQUE_INTERFACES;
-            long: "opaque-interfaces";
+            key: common::OPTION_OPAQUE_INTERFACES;
+            long: common::OPTION_OPAQUE_INTERFACES;
             values: bool_values!();
             validator: bool_validator;
-            help:
-            "Generate 1:1 opaque nominal datatypes for Pyret interfaces";
-            help-long:
-"Generate 1:1 opaque nominal datatypes for Pyret interfaces
-Used by:
-    * TS-FULL
-[default: true]
-"
+            help: common::OPTION_OPAQUE_INTERFACES_HELP;
+            help-long: common::OPTION_OPAQUE_INTERFACES_HELP_LONG
         );
 
         opt_arg!(app =>
-            key: WRAP_TOP_LEVEL_VARS;
-            long: "wrap-top-level-vars";
+            key: common::OPTION_WRAP_TOP_LEVEL_VARS;
+            long: common::OPTION_WRAP_TOP_LEVEL_VARS;
             values: bool_values!();
             validator: bool_validator;
-            help:
-            "Generate converter getters around exported top-level variables";
-            help-long:
-"Generate converter getters around exported top-level variables
-Used by:
-    * TS-FULL
-    * TS-NUM
-[default: true]
-"
+            help: common::OPTION_WRAP_TOP_LEVEL_VARS_HELP;
+            help-long: common::OPTION_WRAP_TOP_LEVEL_VARS_HELP_LONG
+
         );
 
         app
     }.get_matches();
 
-    let target_ts_flavor = match construct_ts_flavor(matches.value_of("TARGET TS FLAVOR")) {
+    let target_ts_flavor = match construct_ts_flavor(matches.value_of(common::OPTION_TS_FLAVOR)) {
         Ok(ts_flavor) => ts_flavor,
 
         Err(e) => {
@@ -166,10 +137,21 @@ Used by:
         matches.value_of("OUTPUT FILE STEM");
 
 
-    let mut gen_config = generate::GenConfig::default();
+    let mut gen_config = match matches.value_of(common::OPTIONS_GEN_CONFIG)
+        .map(load_config)
+        .unwrap_or(Ok(generate::GenConfig::default())) {
+
+        Ok(b) => b,
+
+        Err(e) => {
+            eprintln!("{}", e);
+            eprintln!("Unable to open the base config file");
+            std::process::exit(1);
+        }
+    };
 
     let _ = extract_opt_arg!(matches =>
-        key: OUTPUT_CONSTRUCTOR_WRAPPERS;
+        key: common::OPTION_CONSTRUCTOR_WRAPPERS;
         converter: str::parse::<bool>;
         =>
         gen_config: &mut gen_config;
@@ -177,7 +159,7 @@ Used by:
     );
 
     let _ = extract_opt_arg!(matches =>
-        key: OUTPUT_OPAQUE_INTERFACES;
+        key: common::OPTION_OPAQUE_INTERFACES;
         converter: str::parse::<bool>;
         =>
         gen_config: &mut gen_config;
@@ -185,7 +167,7 @@ Used by:
     );
 
     let _ = extract_opt_arg!(matches =>
-        key: WRAP_TOP_LEVEL_VARS;
+        key: common::OPTION_WRAP_TOP_LEVEL_VARS;
         converter: str::parse::<bool>;
         =>
         gen_config: &mut gen_config;
@@ -221,4 +203,16 @@ Used by:
         ts_flavor: target_ts_flavor,
     };
     generate::gen(options);
+}
+
+fn load_config(path: &str) -> Result<generate::GenConfig, Box<dyn Error>> {
+    use std::io::BufReader;
+    use std::fs::File;
+    use serde_json::de;
+
+    let file = BufReader::new(File::open(path)?);
+
+    let gen_config: generate::GenConfig = de::from_reader(file)?;
+
+    Ok(gen_config)
 }

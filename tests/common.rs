@@ -25,7 +25,7 @@ use std::error;
 use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::process::{self, Command, Stdio};
+use std::process::{self, Command};
 use std::io::{self, Write};
 use std::fs::{self, File};
 use std::thread;
@@ -133,6 +133,10 @@ impl TestEnv {
         }
     }
 
+    pub fn get_tmp_path<P: AsRef<Path>>(&self, p: P) -> PathBuf {
+        self.tmp_dir.join(p)
+    }
+
     pub fn create_tmp_dir<P: AsRef<Path>>(&self, path: P) {
         let path = self.tmp_dir.join(path);
         nice_err(&path, repeat(|| fs::create_dir_all(&path)));
@@ -161,7 +165,6 @@ impl TestEnv {
         let output_dir = self.tmp_dir.join(output_dir);
 
         cmd
-            .stderr(Stdio::inherit())
             .arg("-i")
             .arg(input_path)
             .arg("-o")
@@ -183,7 +186,6 @@ impl TestEnv {
         let mut pyret = self.pyret_cmd();
 
         pyret
-            .stderr(Stdio::inherit())
 
             .arg("--compiled-dir")
             .arg(self.tmp_dir.join(compiled_path))
@@ -207,7 +209,6 @@ impl TestEnv {
         let mut pyret = Command::new(&self.node_path);
 
         pyret
-            .stderr(Stdio::inherit())
             .arg(self.tmp_dir.join(module));
 
         pyret
@@ -251,7 +252,7 @@ pub fn line_separated_expected<T: IntoIterator<Item=I>, I: std::fmt::Display>(it
     let mut output = String::new();
 
     for t in iter.into_iter() {
-        std::fmt::write(&mut output, format_args!("{}\n", t));
+        std::fmt::write(&mut output, format_args!("{}\n", t)).unwrap();
     }
 
     output.push_str("All tests pass\n");
