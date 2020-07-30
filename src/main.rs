@@ -61,7 +61,7 @@ fn main() {
                 .long("require-path")
                 .value_name("require path")
                 .takes_value(true)
-                .help("Import path of the TS implementation file relative to the generated bindings file [default: Same directory as the generated bindings file]")
+                .help(common::OPTION_REQUIRE_PATH_HELP)
                 .required(false))
             .arg(Arg::with_name("OUTPUT FILE STEM")
                 .long("output-file-stem")
@@ -74,7 +74,7 @@ fn main() {
                 .possible_values(common::TS_FLAVOR_STRINGS)
                 .default_value(common::DEFAULT_TS_FLAVOR.1)
                 .takes_value(true)
-                .help("TypeScript subset to accept as input")
+                .help(common::OPTION_TS_FLAVOR_HELP)
                 .required(false))
             .arg(Arg::with_name(common::OPTIONS_BASE_CONFIG)
                 .long(common::OPTIONS_BASE_CONFIG)
@@ -88,15 +88,8 @@ fn main() {
             long: common::OPTION_CONSTRUCTOR_WRAPPERS;
             values: bool_values!();
             validator: bool_validator;
-            help:
-            "Generate Pyret functions around class constructors";
-            help-long:
-"Generate Pyret functions around class constructors.
-Used by:
-    * TS-FULL
-
-[default: true]
-"
+            help: common::OPTION_CONSTRUCTOR_WRAPPERS_HELP;
+            help-long: common::OPTION_CONSTRUCTOR_WRAPPERS_HELP_LONG
         );
 
         opt_arg!(app =>
@@ -104,14 +97,8 @@ Used by:
             long: common::OPTION_OPAQUE_INTERFACES;
             values: bool_values!();
             validator: bool_validator;
-            help:
-            "Generate 1:1 opaque nominal datatypes for Pyret interfaces";
-            help-long:
-"Generate 1:1 opaque nominal datatypes for Pyret interfaces
-Used by:
-    * TS-FULL
-[default: true]
-"
+            help: common::OPTION_OPAQUE_INTERFACES_HELP;
+            help-long: common::OPTION_OPAQUE_INTERFACES_HELP_LONG
         );
 
         opt_arg!(app =>
@@ -119,15 +106,9 @@ Used by:
             long: common::OPTION_WRAP_TOP_LEVEL_VARS;
             values: bool_values!();
             validator: bool_validator;
-            help:
-            "Generate converter getters around exported top-level variables";
-            help-long:
-"Generate converter getters around exported top-level variables
-Used by:
-    * TS-FULL
-    * TS-NUM
-[default: true]
-"
+            help: common::OPTION_WRAP_TOP_LEVEL_VARS_HELP;
+            help-long: common::OPTION_WRAP_TOP_LEVEL_VARS_HELP_LONG
+
         );
 
         app
