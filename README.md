@@ -2,6 +2,8 @@
 * Typescript binding generator
 * Reads '.d.ts' starting from a root ECMA file and outputs a corresponding '.arr.js' and '.arr.json' file
 
+See [this GitHub repo](https://github.com/InnPatron/jetsam-paper) for the soundness proofs of the generated bindings (NOT PEER REVIEWED; PROBABLY HAS MANY MISTAKES).
+
 ## Building
 Requires [Rust](https://www.rust-lang.org/) (tested on 1.41 stable) and Cargo
 
