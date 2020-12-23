@@ -262,7 +262,7 @@ pub fn line_separated_expected<T: IntoIterator<Item = I>, I: std::fmt::Display>(
         std::fmt::write(&mut output, format_args!("{}\n", t)).unwrap();
     }
 
-    output.push_str("All tests pass\n");
+    output.push_str("Looks shipshape, all tests passed, mate!\n");
 
     output
 }
