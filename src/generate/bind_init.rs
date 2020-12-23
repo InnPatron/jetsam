@@ -1,15 +1,15 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::convert::TryFrom;
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use swc_common::{BytePos, SyntaxContext, Span, SourceMap, errors::Handler};
-use swc_ecma_parser::{lexer::Lexer, Parser, SourceFileInput, Syntax, TsConfig, JscTarget};
+use swc_common::{errors::Handler, BytePos, SourceMap, Span, SyntaxContext};
 use swc_ecma_ast::Module;
+use swc_ecma_parser::{lexer::Lexer, JscTarget, Parser, SourceFileInput, Syntax, TsConfig};
 
 use super::bind_common;
-use super::structures::CanonPath;
 use super::error::*;
+use super::structures::CanonPath;
 
 pub struct ParsedModuleCache {
     pub root: CanonPath,
@@ -18,11 +18,10 @@ pub struct ParsedModuleCache {
 
 impl ParsedModuleCache {
     pub fn get(&self, path: &CanonPath) -> &ModuleData {
-        self.cache.get(path)
-            .expect("Module missing from cache")
+        self.cache.get(path).expect("Module missing from cache")
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=(&CanonPath, &ModuleData)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&CanonPath, &ModuleData)> {
         self.cache.iter()
     }
 }
@@ -45,42 +44,35 @@ pub fn init<'a>(
     handler: Handler,
     root_module_path: PathBuf,
 ) -> Result<ParsedModuleCache, BindGenError> {
-
     let mut module_cache: HashMap<CanonPath, ModuleData> = HashMap::new();
 
-    let root_module_path = CanonPath::try_from(root_module_path.clone())
-        .map_err(|e| {
-            BindGenError {
-                kind: e.into(),
-                module_path: root_module_path,
-                span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
-            }
+    let root_module_path =
+        CanonPath::try_from(root_module_path.clone()).map_err(|e| BindGenError {
+            kind: e.into(),
+            module_path: root_module_path,
+            span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
         })?;
 
     let mut work_stack: Vec<(CanonPath, Option<Span>)> = vec![(root_module_path.clone(), None)];
 
     while !work_stack.is_empty() {
-        let (current_path, span) = work_stack
-            .pop()
-            .unwrap();
+        let (current_path, span) = work_stack.pop().unwrap();
 
         if module_cache.contains_key(&current_path) {
             // Already initialized this module
             continue;
         }
 
-        let span = span
-            .unwrap_or(Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()));
+        let span = span.unwrap_or(Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()));
 
-        let module_ast = open_module(
-            &source_map,
-            &handler,
-            &current_path,
-            span.clone(),
-        )?;
+        let module_ast = open_module(&source_map, &handler, &current_path, span.clone())?;
 
         let dependencies = scan_dependencies(&current_path, &module_ast, span)?;
-        work_stack.extend(dependencies.iter().map(|(_, (p, s))| (p.clone(), Some(s.clone()))));
+        work_stack.extend(
+            dependencies
+                .iter()
+                .map(|(_, (p, s))| (p.clone(), Some(s.clone()))),
+        );
 
         let module_data = ModuleData {
             path: current_path.clone(),
@@ -93,7 +85,7 @@ pub fn init<'a>(
 
     Ok(ParsedModuleCache {
         root: root_module_path,
-        cache: module_cache
+        cache: module_cache,
     })
 }
 
@@ -104,79 +96,86 @@ fn scan_dependencies(
 ) -> Result<HashMap<String, (CanonPath, Span)>, BindGenError> {
     use swc_ecma_ast::*;
 
-    let handle_decl = |decl: &ModuleDecl| -> Result<Option<(String, CanonPath, Span)>, BindGenError> {
-        let maybe_dep: Option<(&Str, &Span)> = match decl {
-            ModuleDecl::Import(ImportDecl {
-                ref src,
-                ref span,
-                ..
-            }) => Some((src, span)),
+    let handle_decl =
+        |decl: &ModuleDecl| -> Result<Option<(String, CanonPath, Span)>, BindGenError> {
+            let maybe_dep: Option<(&Str, &Span)> = match decl {
+                ModuleDecl::Import(ImportDecl {
+                    ref src, ref span, ..
+                }) => Some((src, span)),
 
-            ModuleDecl::ExportDecl(..) => None,
+                ModuleDecl::ExportDecl(..) => None,
 
-            ModuleDecl::ExportNamed(NamedExport {
-                ref src,
-                ref span,
-                ..
-            }) => src.as_ref().map(|src| (src, span)),
+                ModuleDecl::ExportNamed(NamedExport {
+                    ref src, ref span, ..
+                }) => src.as_ref().map(|src| (src, span)),
 
-            ModuleDecl::ExportDefaultDecl(ref export) => {
-                return Err(BindGenError {
-                    module_path: module_path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultExport),
-                    span: export.span.clone(),
+                ModuleDecl::ExportDefaultDecl(ref export) => {
+                    return Err(BindGenError {
+                        module_path: module_path.as_path().to_owned(),
+                        kind: BindGenErrorKind::UnsupportedFeature(
+                            UnsupportedFeature::DefaultExport,
+                        ),
+                        span: export.span.clone(),
+                    })
+                }
+
+                ModuleDecl::ExportDefaultExpr(ref export) => {
+                    return Err(BindGenError {
+                        module_path: module_path.as_path().to_owned(),
+                        kind: BindGenErrorKind::UnsupportedFeature(
+                            UnsupportedFeature::DefaultExport,
+                        ),
+                        span: export.span.clone(),
+                    });
+                }
+
+                ModuleDecl::ExportAll(ExportAll { ref src, ref span }) => Some((src, span)),
+
+                ModuleDecl::TsImportEquals(TsImportEqualsDecl { ref span, .. }) => {
+                    return Err(BindGenError {
+                        module_path: module_path.as_path().to_owned(),
+                        kind: BindGenErrorKind::UnsupportedFeature(
+                            UnsupportedFeature::TsImportEquals,
+                        ),
+                        span: span.clone(),
+                    });
+                }
+
+                ModuleDecl::TsExportAssignment(TsExportAssignment { ref span, .. }) => {
+                    return Err(BindGenError {
+                        module_path: module_path.as_path().to_owned(),
+                        kind: BindGenErrorKind::UnsupportedFeature(
+                            UnsupportedFeature::TsExportAssignment,
+                        ),
+                        span: span.clone(),
+                    });
+                }
+
+                ModuleDecl::TsNamespaceExport(TsNamespaceExportDecl { ref span, .. }) => {
+                    // TODO: Handle TsNamespaceExport?
+                    //   What is TsNamespaceExport??
+                    return Err(BindGenError {
+                        module_path: module_path.as_path().to_owned(),
+                        kind: BindGenErrorKind::UnsupportedFeature(
+                            UnsupportedFeature::TsNamespaceExport,
+                        ),
+                        span: span.clone(),
+                    });
+                }
+            };
+
+            maybe_dep
+                .map(|(src, span)| {
+                    let dep_buf = PathBuf::from(src.value.to_string());
+                    bind_common::locate_dependency(module_path.as_path(), &dep_buf).map(
+                        |path_result| {
+                            path_result.map(|path| (src.value.to_string(), path, span.clone()))
+                        },
+                    )
                 })
-            }
-
-            ModuleDecl::ExportDefaultExpr(ref export) => {
-                return Err(BindGenError {
-                    module_path: module_path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultExport),
-                    span: export.span.clone(),
-                });
-            },
-
-            ModuleDecl::ExportAll(ExportAll {
-                ref src,
-                ref span,
-            }) => Some((src, span)),
-
-            ModuleDecl::TsImportEquals(TsImportEqualsDecl { ref span, .. }) => {
-                return Err(BindGenError {
-                    module_path: module_path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::TsImportEquals),
-                    span: span.clone(),
-                });
-            }
-
-            ModuleDecl::TsExportAssignment(TsExportAssignment { ref span, .. }) => {
-                return Err(BindGenError {
-                    module_path: module_path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::TsExportAssignment),
-                    span: span.clone(),
-                });
-            }
-
-            ModuleDecl::TsNamespaceExport(TsNamespaceExportDecl { ref span, .. }) => {
-
-                // TODO: Handle TsNamespaceExport?
-                //   What is TsNamespaceExport??
-                return Err(BindGenError {
-                    module_path: module_path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::TsNamespaceExport),
-                    span: span.clone(),
-                });
-            }
+                .transpose()
+                .map(|opt| opt.flatten())
         };
-
-        maybe_dep.map(|(src, span)| {
-            let dep_buf = PathBuf::from(src.value.to_string());
-            bind_common::locate_dependency(module_path.as_path(), &dep_buf)
-                .map(|path_result| path_result.map(|path| (src.value.to_string(), path, span.clone())))
-        })
-            .transpose()
-            .map(|opt| opt.flatten())
-    };
 
     let mut dep_buf = HashMap::new();
     for module_item in module_ast.body.iter() {
@@ -200,15 +199,12 @@ fn open_module<'a>(
     path: &CanonPath,
     span: Span,
 ) -> Result<Module, BindGenError> {
-
     let file_handle = source_map
         .load_file(path.as_path())
-        .map_err(|io_err| {
-            BindGenError {
-                kind: BindGenErrorKind::IoError(io_err),
-                span: span.clone(),
-                module_path: path.as_path().to_owned(),
-            }
+        .map_err(|io_err| BindGenError {
+            kind: BindGenErrorKind::IoError(io_err),
+            span: span.clone(),
+            module_path: path.as_path().to_owned(),
         })?;
 
     let lexer = Lexer::new(
@@ -216,7 +212,7 @@ fn open_module<'a>(
             tsx: false,
             decorators: false,
             dynamic_import: false,
-            dts: true,                                  // TODO: Used to control .d.ts/.ts parsing
+            dts: true, // TODO: Used to control .d.ts/.ts parsing
             no_early_errors: false,
         }),
         JscTarget::Es2018,
@@ -226,17 +222,15 @@ fn open_module<'a>(
 
     let mut parser = Parser::new_from(lexer);
 
-    let mut module: Module = parser
-        .parse_module()
-        .map_err(|mut e| {
-            e.into_diagnostic(handler).emit();
+    let mut module: Module = parser.parse_module().map_err(|mut e| {
+        e.into_diagnostic(handler).emit();
 
-            BindGenError {
-                kind: BindGenErrorKind::ParserError,
-                span: span.clone(),
-                module_path: path.as_path().to_owned(),
-            }
-        })?;
+        BindGenError {
+            kind: BindGenErrorKind::ParserError,
+            span: span.clone(),
+            module_path: path.as_path().to_owned(),
+        }
+    })?;
 
     hoist_imports(&mut module);
 
@@ -244,8 +238,8 @@ fn open_module<'a>(
 }
 
 fn hoist_imports(module: &mut Module) {
-    use swc_ecma_ast::*;
     use std::mem;
+    use swc_ecma_ast::*;
 
     let capacity = module.body.len();
 
@@ -256,8 +250,7 @@ fn hoist_imports(module: &mut Module) {
 
     for module_item in module_items {
         match module_item {
-            import @ ModuleItem::ModuleDecl(ModuleDecl::Import(..))
-                => module.body.push(import),
+            import @ ModuleItem::ModuleDecl(ModuleDecl::Import(..)) => module.body.push(import),
 
             other => other_buffer.push(other),
         }

@@ -1,15 +1,10 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexSet;
 
 use swc_atoms::JsWord;
 
-use super::bind_graph_init::{
-    ModuleGraph,
-    ModuleNode,
-    Import,
-    Export,
-};
+use super::bind_graph_init::{Export, Import, ModuleGraph, ModuleNode};
 use super::error::*;
 use super::structures::CanonPath;
 
@@ -22,8 +17,6 @@ use super::structures::CanonPath;
 ///      Export::NamedValue
 ///   All new edges point directly to a rooted value
 pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
-
-
     let scc_session = SccSession::init(&graph.nodes, &graph.export_edges);
     let (module_scc_map, scc_map) = scc_session.get_sccs();
 
@@ -36,8 +29,7 @@ pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
 
     // Expand Export::All edges
     // Does NOT remove them b/c may be needed during resolution
-    let expanded: HashMap<CanonPath, Vec<Export>> =
-        expansion_session.expand_exports();
+    let expanded: HashMap<CanonPath, Vec<Export>> = expansion_session.expand_exports();
 
     //use std::convert::TryFrom;
     //dbg!(
@@ -46,7 +38,11 @@ pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
 
     // Add expanded edges to graph
     for (path, mut expanded) in expanded.into_iter() {
-        graph.export_edges.get_mut(&path).unwrap().append(&mut expanded);
+        graph
+            .export_edges
+            .get_mut(&path)
+            .unwrap()
+            .append(&mut expanded);
     }
 
     let mut session = ResolutionSession {
@@ -55,26 +51,29 @@ pub fn reduce(mut graph: ModuleGraph) -> Result<ModuleGraph, BindGenError> {
         original_imports: &graph.import_edges,
         new_exports: Vec::new(),
         new_imports: Vec::new(),
-
     };
-
 
     session.resolve_imports()?;
     session.resolve_exports()?;
 
-    let export_edges = session.new_exports
+    let export_edges = session
+        .new_exports
         .into_iter()
         .map(|(p, edges)| {
-            let edges = edges.into_iter().filter(|e| match e {
-                Export::All { .. } => false,
-                _ => true,
-            }).collect();
+            let edges = edges
+                .into_iter()
+                .filter(|e| match e {
+                    Export::All { .. } => false,
+                    _ => true,
+                })
+                .collect();
 
             (p.clone(), edges)
         })
         .collect();
 
-    let import_edges = session.new_imports
+    let import_edges = session
+        .new_imports
         .into_iter()
         .map(|(p, edges)| (p.clone(), edges))
         .collect();
@@ -103,7 +102,6 @@ struct ResolutionSession<'a> {
 }
 
 impl<'a> ResolutionSession<'a> {
-
     fn get_node(&self, path: &CanonPath) -> &'a ModuleNode {
         self.nodes
             .get(path)
@@ -118,14 +116,12 @@ impl<'a> ResolutionSession<'a> {
 
             for export in exports.iter() {
                 match export {
-
                     Export::NamedType {
                         ref source,
                         ref src_key,
                         ref export_key,
                     } => {
-                        let resolution =
-                            self.traverse(source, src_key, ResolutionKind::Type);
+                        let resolution = self.traverse(source, src_key, ResolutionKind::Type);
 
                         match resolution {
                             Some((path, key)) => {
@@ -134,13 +130,16 @@ impl<'a> ResolutionSession<'a> {
                                     src_key: key,
                                     export_key: export_key.clone(),
                                 });
-
                             }
 
-                            None => todo!("Error in [{}]: type import not resolved [{}]:{} (as {})",
-                                canon_path.as_path().display(), source.as_path().display(), src_key, export_key),
+                            None => todo!(
+                                "Error in [{}]: type import not resolved [{}]:{} (as {})",
+                                canon_path.as_path().display(),
+                                source.as_path().display(),
+                                src_key,
+                                export_key
+                            ),
                         }
-
                     }
 
                     Export::NamedValue {
@@ -148,8 +147,7 @@ impl<'a> ResolutionSession<'a> {
                         ref src_key,
                         ref export_key,
                     } => {
-                        let resolution =
-                            self.traverse(source, src_key, ResolutionKind::Value);
+                        let resolution = self.traverse(source, src_key, ResolutionKind::Value);
 
                         match resolution {
                             Some((path, key)) => {
@@ -158,11 +156,15 @@ impl<'a> ResolutionSession<'a> {
                                     src_key: key,
                                     export_key: export_key.clone(),
                                 });
-
                             }
 
-                            None => todo!("Error in [{}]: value import not resolved [{}]:{} (as {})",
-                                canon_path.as_path().display(), source.as_path().display(), src_key, export_key),
+                            None => todo!(
+                                "Error in [{}]: value import not resolved [{}]:{} (as {})",
+                                canon_path.as_path().display(),
+                                source.as_path().display(),
+                                src_key,
+                                export_key
+                            ),
                         }
                     }
 
@@ -171,39 +173,39 @@ impl<'a> ResolutionSession<'a> {
                         ref src_key,
                         ref export_key,
                     } => {
-
-                        let type_resolution =
-                            self.traverse(source, src_key, ResolutionKind::Type);
+                        let type_resolution = self.traverse(source, src_key, ResolutionKind::Type);
 
                         let value_resolution =
                             self.traverse(source, src_key, ResolutionKind::Value);
 
                         if type_resolution.is_none() && value_resolution.is_none() {
-                            todo!("Error in [{}]: import not resolved [{}]:{} (as {})",
-                                canon_path.as_path().display(), source.as_path().display(), src_key, export_key);
+                            todo!(
+                                "Error in [{}]: import not resolved [{}]:{} (as {})",
+                                canon_path.as_path().display(),
+                                source.as_path().display(),
+                                src_key,
+                                export_key
+                            );
                         }
 
                         if let Some((path, key)) = type_resolution {
-                                new_exports.push(Export::NamedType {
-                                    source: path,
-                                    src_key: key,
-                                    export_key: export_key.clone(),
-                                });
+                            new_exports.push(Export::NamedType {
+                                source: path,
+                                src_key: key,
+                                export_key: export_key.clone(),
+                            });
                         }
 
                         if let Some((path, key)) = value_resolution {
-                                new_exports.push(Export::NamedValue {
-                                    source: path,
-                                    src_key: key,
-                                    export_key: export_key.clone(),
-                                });
+                            new_exports.push(Export::NamedValue {
+                                source: path,
+                                src_key: key,
+                                export_key: export_key.clone(),
+                            });
                         }
-
                     }
 
-                    Export::All {
-                        ref source,
-                    } => {
+                    Export::All { ref source } => {
                         new_exports.push(Export::All {
                             source: source.clone(),
                         });
@@ -223,42 +225,36 @@ impl<'a> ResolutionSession<'a> {
 
             for import in imports.iter() {
                 match import {
-
                     Import::NamedType {
                         ref source,
                         ref src_key,
                     } => {
-                        let resolution =
-                            self.traverse(source, src_key, ResolutionKind::Type);
+                        let resolution = self.traverse(source, src_key, ResolutionKind::Type);
 
                         match resolution {
                             Some((path, key)) => {
                                 new_imports.push(Import::NamedType {
                                     source: path,
-                                    src_key: key
+                                    src_key: key,
                                 });
-
                             }
 
                             None => todo!("Error: type import not resolved"),
                         }
-
                     }
 
                     Import::NamedValue {
                         ref source,
                         ref src_key,
                     } => {
-                        let resolution =
-                            self.traverse(source, src_key, ResolutionKind::Value);
+                        let resolution = self.traverse(source, src_key, ResolutionKind::Value);
 
                         match resolution {
                             Some((path, key)) => {
                                 new_imports.push(Import::NamedValue {
                                     source: path,
-                                    src_key: key
+                                    src_key: key,
                                 });
-
                             }
 
                             None => todo!("Error: value import not resolved"),
@@ -269,9 +265,7 @@ impl<'a> ResolutionSession<'a> {
                         ref source,
                         ref src_key,
                     } => {
-
-                        let type_resolution =
-                            self.traverse(source, src_key, ResolutionKind::Type);
+                        let type_resolution = self.traverse(source, src_key, ResolutionKind::Type);
 
                         let value_resolution =
                             self.traverse(source, src_key, ResolutionKind::Value);
@@ -281,19 +275,18 @@ impl<'a> ResolutionSession<'a> {
                         }
 
                         if let Some((path, key)) = type_resolution {
-                                new_imports.push(Import::NamedType {
-                                    source: path,
-                                    src_key: key
-                                });
+                            new_imports.push(Import::NamedType {
+                                source: path,
+                                src_key: key,
+                            });
                         }
 
                         if let Some((path, key)) = value_resolution {
-                                new_imports.push(Import::NamedValue {
-                                    source: path,
-                                    src_key: key
-                                });
+                            new_imports.push(Import::NamedValue {
+                                source: path,
+                                src_key: key,
+                            });
                         }
-
                     }
                 }
             }
@@ -307,15 +300,17 @@ impl<'a> ResolutionSession<'a> {
     ///
     /// Scans re-export edges and adds to the worklist if matching export keys
     ///
-    fn worklist_exports(&self,
+    fn worklist_exports(
+        &self,
         worklist: &mut Vec<(&'a CanonPath, &'a JsWord)>,
         export_source: &'a CanonPath,
         key: &'a JsWord,
-        kind: ResolutionKind
+        kind: ResolutionKind,
     ) {
-        let exports = self.original_exports
-            .get(export_source)
-            .expect(&format!("Missing original exports from {}", export_source.as_path().display()));
+        let exports = self.original_exports.get(export_source).expect(&format!(
+            "Missing original exports from {}",
+            export_source.as_path().display()
+        ));
 
         for export in exports.iter() {
             match export {
@@ -324,27 +319,23 @@ impl<'a> ResolutionSession<'a> {
                     ref src_key,
                     ref export_key,
                 } => {
-
                     if let ResolutionKind::Type = kind {
                         if export_key == key {
                             worklist.push((source, src_key));
                         }
                     }
-
-                },
+                }
 
                 Export::NamedValue {
                     ref source,
                     ref src_key,
                     ref export_key,
                 } => {
-
                     if let ResolutionKind::Value = kind {
                         if export_key == key {
                             worklist.push((source, src_key));
                         }
                     }
-
                 }
 
                 Export::Named {
@@ -357,21 +348,19 @@ impl<'a> ResolutionSession<'a> {
                     }
                 }
 
-                Export::All {
-                    ref source,
-                } => {
+                Export::All { ref source } => {
                     worklist.push((source, key));
                 }
             }
         }
     }
 
-    fn traverse(&self,
+    fn traverse(
+        &self,
         start: &'a CanonPath,
         source_key: &'a JsWord,
         kind: ResolutionKind,
     ) -> Resolution {
-
         let mut visited_set: HashSet<&CanonPath> = HashSet::new();
         let mut worklist: Vec<(&CanonPath, &JsWord)> = vec![(start, source_key)];
 
@@ -390,7 +379,7 @@ impl<'a> ResolutionSession<'a> {
                     if node.is_rooted_type(next_key) {
                         return Some((next_path.clone(), next_key.clone()));
                     }
-                },
+                }
 
                 ResolutionKind::Value => {
                     if node.is_rooted_value(next_key) {
@@ -469,24 +458,15 @@ impl<'a> ExpansionSession<'a> {
 
         for edge in edges.iter() {
             match edge {
-                Export::NamedType {
-                    ref export_key,
-                    ..
-                } => {
+                Export::NamedType { ref export_key, .. } => {
                     set.types.insert(export_key.clone());
                 }
 
-                Export::NamedValue {
-                    ref export_key,
-                    ..
-                } => {
+                Export::NamedValue { ref export_key, .. } => {
                     set.values.insert(export_key.clone());
                 }
 
-                Export::Named {
-                    ref export_key,
-                    ..
-                } => {
+                Export::Named { ref export_key, .. } => {
                     set.nebulous.insert(export_key.clone());
                 }
 
@@ -497,7 +477,8 @@ impl<'a> ExpansionSession<'a> {
         set
     }
 
-    fn scc_direct_export_set(&self,
+    fn scc_direct_export_set(
+        &self,
         scc: &Scc<'a>,
         node_sets: &mut HashMap<&'a CanonPath, ExportSet>,
     ) -> ExportSet {
@@ -512,10 +493,11 @@ impl<'a> ExpansionSession<'a> {
         scc_set
     }
 
-    fn scc_export_set(&self,
+    fn scc_export_set(
+        &self,
         scc: &Scc<'a>,
         scc_sets: &mut HashMap<SccId, ExportSet>,
-        node_sets: &mut HashMap<&'a CanonPath, ExportSet>
+        node_sets: &mut HashMap<&'a CanonPath, ExportSet>,
     ) -> SccId {
         match scc_sets.get(&scc.id) {
             Some(..) => scc.id,
@@ -552,7 +534,6 @@ impl<'a> ExpansionSession<'a> {
     }
 
     fn expand_exports(mut self) -> HashMap<CanonPath, Vec<Export>> {
-
         let mut expanded_exports = HashMap::new();
         let mut scc_sets = HashMap::new();
         let mut node_sets = HashMap::new();
@@ -562,8 +543,7 @@ impl<'a> ExpansionSession<'a> {
             self.scc_export_set(&scc, &mut scc_sets, &mut node_sets);
             let scc_set = scc_sets.get(id).expect("Missing scc set");
 
-            let scc_root: CanonPath
-                = (*scc.set.iter().next().unwrap()).clone();
+            let scc_root: CanonPath = (*scc.set.iter().next().unwrap()).clone();
 
             // For each node, export missing types, values, or nebulous edges
             for node_path in scc.set.iter() {
@@ -623,7 +603,6 @@ impl<'a> Scc<'a> {
 /// Tarjan's strongly connected components algorithm
 /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm#Complexity
 struct SccSession<'a> {
-
     module_scc_map: HashMap<&'a CanonPath, SccId>,
     results: HashMap<SccId, Scc<'a>>,
 
@@ -641,13 +620,11 @@ struct SccSession<'a> {
 }
 
 impl<'a> SccSession<'a> {
-
     fn init(
         nodes: &'a HashMap<CanonPath, ModuleNode>,
         original_exports: &'a HashMap<CanonPath, Vec<Export>>,
     ) -> Self {
         let session = SccSession {
-
             module_scc_map: HashMap::new(),
             results: HashMap::new(),
 
@@ -686,7 +663,6 @@ impl<'a> SccSession<'a> {
     }
 
     fn export_alls_scc(&mut self) {
-
         for (node_path, _) in self.nodes.iter() {
             if self.vertex_indices.contains_key(node_path) == false {
                 self.current = Some(node_path);
@@ -697,10 +673,12 @@ impl<'a> SccSession<'a> {
 
     fn scc(&mut self) {
         let current_path = self.current.unwrap();
-        let edges = self.original_exports
+        let edges = self
+            .original_exports
             .get(current_path)
             .map(|edges| {
-                edges.iter()
+                edges
+                    .iter()
                     .filter(|edge| match edge {
                         Export::All { .. } => true,
 
@@ -710,9 +688,9 @@ impl<'a> SccSession<'a> {
                         Export::All { ref source } => source,
 
                         _ => unreachable!("Should be filtered"),
-
                     })
-            }).unwrap();
+            })
+            .unwrap();
 
         self.vertex_indices.insert(current_path, self.curr_index);
         self.vertex_low_links.insert(current_path, self.curr_index);
@@ -724,43 +702,32 @@ impl<'a> SccSession<'a> {
 
         //  w
         for to in edges {
-
             if self.vertex_indices.contains_key(to) == false {
-
                 self.current = Some(to);
                 self.scc();
                 let low_link = {
-                    let v_ll = self.vertex_low_links.get(current_path)
-                        .unwrap();
+                    let v_ll = self.vertex_low_links.get(current_path).unwrap();
 
-                    let w_ll = self.vertex_low_links.get(to)
-                        .unwrap();
+                    let w_ll = self.vertex_low_links.get(to).unwrap();
 
                     std::cmp::min(v_ll, w_ll).clone()
                 };
                 self.vertex_low_links.insert(current_path, low_link);
-
             } else if self.vertex_on_stack.contains(to) {
-
                 let low_link = {
-                    let v_ll = self.vertex_low_links.get(current_path)
-                        .unwrap();
+                    let v_ll = self.vertex_low_links.get(current_path).unwrap();
 
-                    let w_index = self.vertex_indices.get(to)
-                        .unwrap();
+                    let w_index = self.vertex_indices.get(to).unwrap();
 
                     std::cmp::min(v_ll, w_index).clone()
                 };
                 self.vertex_low_links.insert(current_path, low_link);
-
             }
         }
 
-        let v_ll = self.vertex_low_links.get(current_path)
-            .unwrap();
+        let v_ll = self.vertex_low_links.get(current_path).unwrap();
 
-        let v_index = self.vertex_indices.get(current_path)
-            .unwrap();
+        let v_index = self.vertex_indices.get(current_path).unwrap();
 
         if v_ll == v_index {
             let scc_id = SccId(self.scc_index);

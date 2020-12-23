@@ -1,7 +1,7 @@
 pub enum TsFlavor {
     TsNum,
     TsFull,
-    TsCustom(TsFeatures)
+    TsCustom(TsFeatures),
 }
 
 impl TsFlavor {
@@ -80,11 +80,9 @@ pub struct TsFeatures {
 
     #[builder(default = "false")]
     pub type_alias: bool,
-
 }
 
 impl TsFeatures {
-
     // NOTE: Need to manually keep this in sync
     pub fn all() -> Self {
         TsFeaturesBuilder::default()
@@ -113,9 +111,7 @@ impl TsFeatures {
     }
 
     pub fn empty() -> Self {
-        TsFeaturesBuilder::default()
-            .build()
-            .expect("empty failed")
+        TsFeaturesBuilder::default().build().expect("empty failed")
     }
 
     pub fn ts_num() -> Self {
@@ -130,14 +126,12 @@ impl TsFeatures {
 }
 
 impl TsFeaturesBuilder {
-
     pub fn empty() -> Self {
         TsFeaturesBuilder::default()
     }
 
     pub fn allow_simple_records(&mut self) -> &mut Self {
-        self
-            .interfaces(true)
+        self.interfaces(true)
             .type_literal(true)
             .interface_extension(false)
             .recursive_type(false)

@@ -4,13 +4,10 @@ use swc_ecma_ast::*;
 
 use super::bind_init::ModuleData;
 
-use super::structures::{ ItemState, Scope, CanonPath };
 use super::error::*;
+use super::structures::{CanonPath, ItemState, Scope};
 
-
-pub fn init(data: &ModuleData)
-    -> Result<Scope<ItemState>, BindGenError> {
-
+pub fn init(data: &ModuleData) -> Result<Scope<ItemState>, BindGenError> {
     let mut init_session = InitSession {
         path: &data.path,
         dependency_map: &data.dependencies,
@@ -49,32 +46,29 @@ impl<'a> InitSession<'a> {
 
     fn process_module_decl(&mut self, module_decl: &ModuleDecl) -> Result<(), BindGenError> {
         match module_decl {
-
             ModuleDecl::Import(ref import) => {
-                let src_canon_path: &CanonPath =
-                    get_dep_src!(self, import.src);
+                let src_canon_path: &CanonPath = get_dep_src!(self, import.src);
 
                 for specifier in import.specifiers.iter() {
                     self.handle_import_specifier(src_canon_path, specifier)?;
                 }
 
                 Ok(())
-            },
+            }
 
-            ModuleDecl::ExportDecl(ExportDecl {
-                ref decl,
-                ..
-            }) => self.process_decl(decl),
+            ModuleDecl::ExportDecl(ExportDecl { ref decl, .. }) => self.process_decl(decl),
 
             _ => Ok(()),
         }
     }
 
-    fn handle_import_specifier(&mut self, source: &CanonPath, spec: &ImportSpecifier)
-        -> Result<(), BindGenError> {
+    fn handle_import_specifier(
+        &mut self,
+        source: &CanonPath,
+        spec: &ImportSpecifier,
+    ) -> Result<(), BindGenError> {
         match spec {
             ImportSpecifier::Named(ref named) => {
-
                 let src_key = named
                     .imported
                     .as_ref()
@@ -95,47 +89,29 @@ impl<'a> InitSession<'a> {
                 Ok(())
             }
 
-            ImportSpecifier::Default(def) => {
-                Err(BindGenError {
-                    module_path: self.path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
-                    span: def.span,
-                })
-            }
+            ImportSpecifier::Default(def) => Err(BindGenError {
+                module_path: self.path.as_path().to_owned(),
+                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                span: def.span,
+            }),
 
-            ImportSpecifier::Namespace(namespace) => {
-                Err(BindGenError {
-                    module_path: self.path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
-                    span: namespace.span,
-                })
-            }
+            ImportSpecifier::Namespace(namespace) => Err(BindGenError {
+                module_path: self.path.as_path().to_owned(),
+                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                span: namespace.span,
+            }),
         }
     }
 
     fn process_decl(&mut self, decl: &Decl) -> Result<(), BindGenError> {
         let symbol = match decl {
-            Decl::Class(ClassDecl {
-                ref ident,
-                ..
-            }) => Some(ident.sym.clone()),
+            Decl::Class(ClassDecl { ref ident, .. }) => Some(ident.sym.clone()),
 
-            Decl::TsInterface(TsInterfaceDecl {
-                id,
-                ..
-            }) => Some(id.sym.clone()),
+            Decl::TsInterface(TsInterfaceDecl { id, .. }) => Some(id.sym.clone()),
 
-            Decl::TsTypeAlias(TsTypeAliasDecl {
-                id,
-                ..
-            }) => Some(id.sym.clone()),
+            Decl::TsTypeAlias(TsTypeAliasDecl { id, .. }) => Some(id.sym.clone()),
 
-            Decl::TsEnum(TsEnumDecl {
-                id,
-                ..
-            }) => {
-                Some(id.sym.clone())
-            },
+            Decl::TsEnum(TsEnumDecl { id, .. }) => Some(id.sym.clone()),
 
             _ => None,
         };
@@ -147,4 +123,3 @@ impl<'a> InitSession<'a> {
         Ok(())
     }
 }
-

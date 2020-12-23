@@ -22,7 +22,7 @@ macro_rules! basic_check {
         if $detected.$field && $target.$field == false {
             $errors.push($e);
         }
-    }}
+    }};
 }
 
 pub fn compatible(detected: &TsFeatures, target: &TsFeatures) -> Result<(), Vec<CompatError>> {

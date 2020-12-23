@@ -1,16 +1,18 @@
-use std::path::{Path, PathBuf};
 use std::convert::TryFrom;
+use std::path::{Path, PathBuf};
 
+use swc_common::{BytePos, Span, SyntaxContext};
 use swc_ecma_ast::*;
-use swc_common::{BytePos, SyntaxContext, Span};
 
-use super::structures::CanonPath;
 use super::error::*;
+use super::structures::CanonPath;
 
 // TODO: Fix dependency resolution to match Node (and Typescript Node import option)
 //    Helpful sources: https://www.typescriptlang.org/docs/handbook/module-resolution.html#node
-pub fn locate_dependency(original: &Path, dependency: &Path) -> Result<Option<CanonPath>, BindGenError> {
-
+pub fn locate_dependency(
+    original: &Path,
+    dependency: &Path,
+) -> Result<Option<CanonPath>, BindGenError> {
     if dependency.is_relative() {
         let mut current_path = original.to_owned();
         current_path.pop();
@@ -18,15 +20,12 @@ pub fn locate_dependency(original: &Path, dependency: &Path) -> Result<Option<Ca
         prepare_path(&mut current_path);
 
         CanonPath::try_from(current_path.clone())
-            .map_err(|e| {
-                BindGenError {
-                    module_path: current_path,
-                    kind: e.into(),
-                    span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
-                }
+            .map_err(|e| BindGenError {
+                module_path: current_path,
+                kind: e.into(),
+                span: Span::new(BytePos(0), BytePos(0), SyntaxContext::empty()),
             })
-        .map(|path| Some(path))
-
+            .map(|path| Some(path))
     } else {
         todo!("Other module resolution");
     }

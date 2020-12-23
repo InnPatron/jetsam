@@ -7,30 +7,49 @@ mod macros;
 mod ts_num_js_emit;
 mod ts_num_json_emit;
 
-
 use std::collections::HashSet;
-use std::path::Path;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::path::Path;
 
 use swc_ecma_ast::Module as AstModule;
 
+use crate::compile_opt::CompileOpt;
+use crate::generate::error::EmitError;
 use crate::generate::js_pp::PrettyPrinter;
 use crate::generate::structures::*;
-use crate::generate::error::EmitError;
-use crate::generate::typify_graph::ModuleGraph;
 use crate::generate::type_structs::Type;
-use crate::compile_opt::CompileOpt;
+use crate::generate::typify_graph::ModuleGraph;
 
 pub trait JsonEmitter {
-    fn export_type(&mut self, current_module: &Path, name: &str, typ: &Type) -> Result<(), EmitError>;
-    fn export_value(&mut self, current_module: &Path, name: &str, value_type: &Type) -> Result<(), EmitError>;
+    fn export_type(
+        &mut self,
+        current_module: &Path,
+        name: &str,
+        typ: &Type,
+    ) -> Result<(), EmitError>;
+    fn export_value(
+        &mut self,
+        current_module: &Path,
+        name: &str,
+        value_type: &Type,
+    ) -> Result<(), EmitError>;
     fn finalize(self, current_module: &Path) -> Result<String, EmitError>;
 }
 
 pub trait JsEmitter {
-    fn handle_type(&mut self, current_module: &Path, name: &str, typ: &Type) -> Result<(), EmitError>;
-    fn handle_value(&mut self, current_module: &Path, name: &str, value_type: &Type) -> Result<(), EmitError>;
+    fn handle_type(
+        &mut self,
+        current_module: &Path,
+        name: &str,
+        typ: &Type,
+    ) -> Result<(), EmitError>;
+    fn handle_value(
+        &mut self,
+        current_module: &Path,
+        name: &str,
+        value_type: &Type,
+    ) -> Result<(), EmitError>;
     fn finalize(self, current_module: &Path) -> Result<AstModule, EmitError>;
 }
 
@@ -50,7 +69,13 @@ pub fn ts_num_emit(
     let js_emitter = JsEmitter::new(options);
     let json_emitter = JsonEmitter::new(options);
 
-    emit(options, root_module_path, typed_graph, js_emitter, json_emitter)
+    emit(
+        options,
+        root_module_path,
+        typed_graph,
+        js_emitter,
+        json_emitter,
+    )
 }
 
 pub fn ts_full_emit(
@@ -75,10 +100,10 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
     js_emitter: JS,
     json_emitter: JSON,
 ) -> Result<(), EmitError> {
-
     let outdir = &options.output_dir;
 
-    let file_name = options.file_stem
+    let file_name = options
+        .file_stem
         .as_ref()
         .map(|f| std::ffi::OsStr::new(f))
         .unwrap_or_else(|| {
@@ -93,15 +118,9 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
         js_output: js_emitter,
     };
 
-    traverse(
-        options,
-        root_module_path,
-        typed_graph,
-        &mut context,
-    )?;
+    traverse(options, root_module_path, typed_graph, &mut context)?;
 
     opt!(options.emit_config, json, {
-
         let json_output_path = {
             let mut output_path = outdir.to_owned();
             output_path.push(file_name);
@@ -112,20 +131,16 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
 
         // Emit JSON into file
         let root_path = root_module_path.as_path().to_owned();
-        let mut file =
-            File::create(json_output_path)
+        let mut file = File::create(json_output_path)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
-        let output = context.json_output
-            .finalize(root_path.as_path())?;
+        let output = context.json_output.finalize(root_path.as_path())?;
 
         file.write_all(output.as_bytes())
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
-
     });
 
     opt!(options.emit_config, js, {
-
         let js_output_path = {
             let mut output_path = outdir.to_owned();
             output_path.push(file_name);
@@ -136,14 +151,12 @@ pub fn emit<JS: JsEmitter, JSON: JsonEmitter>(
 
         // Emit JS into file
         let root_path = root_module_path.as_path();
-        let file =
-            File::create(&js_output_path)
+        let file = File::create(&js_output_path)
             .map_err(|io_err| EmitError::IoError(root_path.to_owned(), io_err))?;
 
         let file = BufWriter::new(file);
 
-        let ast_module = context.js_output
-            .finalize(root_path)?;
+        let ast_module = context.js_output.finalize(root_path)?;
 
         // NOTE: Cannot use swc_ecma_codegen for whatever reason
         //   Provided emitter appears to rely on SourceMap and Spans
@@ -176,24 +189,30 @@ fn traverse<JS: JsEmitter, JSON: JsonEmitter>(
 
         for (export_key, typ) in node.rooted_export_types.iter() {
             opt!(options.emit_config, json, {
-                context.json_output.export_type(node.path.as_path(), export_key, typ)?;
+                context
+                    .json_output
+                    .export_type(node.path.as_path(), export_key, typ)?;
             });
             opt!(options.emit_config, js, {
-                context.js_output.handle_type(node.path.as_path(), export_key, typ)?;
+                context
+                    .js_output
+                    .handle_type(node.path.as_path(), export_key, typ)?;
             });
         }
 
         for (export_key, typ) in node.rooted_export_values.iter() {
             opt!(options.emit_config, json, {
-                context.json_output.export_value(node.path.as_path(), export_key, typ)?;
+                context
+                    .json_output
+                    .export_value(node.path.as_path(), export_key, typ)?;
             });
-
 
             opt!(options.emit_config, js, {
-                context.js_output.handle_value(node.path.as_path(), export_key, typ)?;
+                context
+                    .js_output
+                    .handle_value(node.path.as_path(), export_key, typ)?;
             });
         }
-
 
         let edges = graph.export_edges.get(node_path).unwrap();
 

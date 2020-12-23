@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::ts::TsFlavor;
 use crate::generate::{EmitConfig, GenConfig};
+use crate::ts::TsFlavor;
 
 pub struct CompileOpt<'a> {
     pub input_path: PathBuf,

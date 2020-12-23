@@ -18,7 +18,7 @@ macro_rules! no_err {
         } else {
             return;
         }
-    }
+    };
 }
 
 macro_rules! collect {
@@ -31,7 +31,7 @@ macro_rules! collect {
                 return;
             }
         }
-    }
+    };
 }
 
 pub struct PrettyPrinter<W: Write> {
@@ -180,17 +180,14 @@ impl<W: Write> Visit for PrettyPrinter<W> {
 
             Pat::Expr(ref e) => self.visit_expr(e, &()),
 
-            Pat::Array(ArrayPat {
-                ref elems,
-                ..
-            }) => {
+            Pat::Array(ArrayPat { ref elems, .. }) => {
                 self.write("[");
                 match elems.len() {
                     1 => {
                         if let Some(ref p) = elems.get(0).unwrap() {
                             self.visit_pat(p, &());
                         }
-                    },
+                    }
 
                     _ => todo!("Array pattern with length: {} ({:#?})", elems.len(), elems),
                 }
@@ -254,7 +251,6 @@ impl<W: Write> Visit for PrettyPrinter<W> {
             }
         }
 
-
         if let Some(ref fbranch) = n.alt {
             self.write(" else ");
             match **fbranch {
@@ -285,7 +281,6 @@ impl<W: Write> Visit for PrettyPrinter<W> {
     }
 
     fn visit_return_stmt(&mut self, n: &ReturnStmt, _: &dyn Node) {
-
         match n.arg {
             Some(ref e) => {
                 self.indent_write("return ");

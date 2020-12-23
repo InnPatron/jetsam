@@ -1,5 +1,5 @@
-use std::hash::Hash;
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::path::PathBuf;
 
 use swc_atoms::JsWord;

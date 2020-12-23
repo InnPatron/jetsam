@@ -21,13 +21,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::error;
 use std::env;
+use std::error;
 use std::ffi::OsStr;
+use std::fs::{self, File};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use std::io::{self, Write};
-use std::fs::{self, File};
 use std::thread;
 use std::time::Duration;
 
@@ -44,7 +44,6 @@ const TEST_DIR: &'static str = "jetsam-tests";
 
 #[derive(Debug, Clone)]
 pub struct TestEnv {
-
     root: PathBuf,
 
     /// Determined by environment variable "TMPDIR"
@@ -64,7 +63,6 @@ pub struct TestEnv {
 }
 
 impl TestEnv {
-
     pub fn new(name: &str) -> Self {
         let root = env::current_exe()
             .unwrap()
@@ -77,26 +75,29 @@ impl TestEnv {
             .unwrap_or(PathBuf::from("node"));
 
         let tmp_dir = {
-            let tmp_dir =
-                env::temp_dir().join(TEST_DIR).join(name);
+            let tmp_dir = env::temp_dir().join(TEST_DIR).join(name);
 
-                if tmp_dir.exists() {
-                    nice_err(&tmp_dir, fs::remove_dir_all(&tmp_dir));
-                }
-                nice_err(&tmp_dir, repeat(|| fs::create_dir_all(&tmp_dir)));
+            if tmp_dir.exists() {
+                nice_err(&tmp_dir, fs::remove_dir_all(&tmp_dir));
+            }
+            nice_err(&tmp_dir, repeat(|| fs::create_dir_all(&tmp_dir)));
             tmp_dir
         };
 
         let pyret_compiler_path = {
-            let mut pyret_compiler_path = PathBuf::from(
-                env::var_os(PYRET_COMPILER_DIR)
-                    .expect(&format!("Missing Pyret compiler path ({} not set)", PYRET_COMPILER_DIR))
-            );
+            let mut pyret_compiler_path =
+                PathBuf::from(env::var_os(PYRET_COMPILER_DIR).expect(&format!(
+                    "Missing Pyret compiler path ({} not set)",
+                    PYRET_COMPILER_DIR
+                )));
 
             pyret_compiler_path.push(PYRET_COMPILER_NAME);
 
             if !pyret_compiler_path.exists() {
-                panic!("Path to Pyret compiler does not exist ('{}')", pyret_compiler_path.display());
+                panic!(
+                    "Path to Pyret compiler does not exist ('{}')",
+                    pyret_compiler_path.display()
+                );
             }
 
             pyret_compiler_path
@@ -106,11 +107,11 @@ impl TestEnv {
             let mut pyret_runtime_dir = env::var_os(PYRET_RUNTIME_DIR)
                 .map(PathBuf::from)
                 .unwrap_or_else(|| {
-                    let mut compiler_dir = PathBuf::from(
-                        env::var_os(PYRET_COMPILER_DIR)
-                        .expect(&format!("Missing Pyret runtime path ({} or {} not set)",
-                            PYRET_COMPILER_DIR, PYRET_RUNTIME_DIR))
-                    );
+                    let mut compiler_dir =
+                        PathBuf::from(env::var_os(PYRET_COMPILER_DIR).expect(&format!(
+                            "Missing Pyret runtime path ({} or {} not set)",
+                            PYRET_COMPILER_DIR, PYRET_RUNTIME_DIR
+                        )));
                     compiler_dir.pop();
                     compiler_dir.push("runtime");
 
@@ -118,7 +119,10 @@ impl TestEnv {
                 });
 
             if !pyret_runtime_dir.exists() {
-                panic!("Path to Pyret runtime does not exist ('{}')", pyret_runtime_dir.display());
+                panic!(
+                    "Path to Pyret runtime does not exist ('{}')",
+                    pyret_runtime_dir.display()
+                );
             }
 
             pyret_runtime_dir
@@ -144,61 +148,65 @@ impl TestEnv {
 
     pub fn create_tmp_file<P: AsRef<Path>>(&self, name: P, contents: &str) {
         let path = self.tmp_dir.join(&name);
-        nice_err(&path, (||{
-            let path = self.tmp_dir.join(name);
-            let mut file = File::create(path)?;
-            file.write_all(contents.as_bytes())?;
-            file.flush()
-        })());
+        nice_err(
+            &path,
+            (|| {
+                let path = self.tmp_dir.join(name);
+                let mut file = File::create(path)?;
+                file.write_all(contents.as_bytes())?;
+                file.flush()
+            })(),
+        );
     }
 
     pub fn jetsam_cmd(&self) -> Command {
-        let jetsam = self.root.join(format!("../jetsam{}", env::consts::EXE_SUFFIX));
+        let jetsam = self
+            .root
+            .join(format!("../jetsam{}", env::consts::EXE_SUFFIX));
 
         Command::new(jetsam)
     }
 
-    pub fn jetsam_build_cmd<S1: AsRef<Path>, S2: AsRef<Path>>(&self, input_path: S1, output_dir: S2) -> Command {
+    pub fn jetsam_build_cmd<S1: AsRef<Path>, S2: AsRef<Path>>(
+        &self,
+        input_path: S1,
+        output_dir: S2,
+    ) -> Command {
         let mut cmd = self.jetsam_cmd();
 
         let input_path = self.tmp_dir.join(input_path);
         let output_dir = self.tmp_dir.join(output_dir);
 
-        cmd
-            .arg("-i")
-            .arg(input_path)
-            .arg("-o")
-            .arg(output_dir);
+        cmd.arg("-i").arg(input_path).arg("-o").arg(output_dir);
 
         cmd
     }
 
     pub fn pyret_cmd(&self) -> Command {
         let mut pyret = Command::new(&self.node_path);
-        pyret
-            .arg(self.pyret_compiler_path.as_path());
+        pyret.arg(self.pyret_compiler_path.as_path());
 
         pyret
     }
 
-    pub fn pyret_build_cmd<S1: AsRef<OsStr>, S2: AsRef<Path>, S3: AsRef<Path>>(&self, root_arr_file: S1, base_path: S2, compiled_path: S3) -> Command {
-	// node $(ANCHOR_COMPILER) --type-check true --builtin-js-dir $(ANCHOR_RUNTIME)  --build-runnable $(MAIN)
+    pub fn pyret_build_cmd<S1: AsRef<OsStr>, S2: AsRef<Path>, S3: AsRef<Path>>(
+        &self,
+        root_arr_file: S1,
+        base_path: S2,
+        compiled_path: S3,
+    ) -> Command {
+        // node $(ANCHOR_COMPILER) --type-check true --builtin-js-dir $(ANCHOR_RUNTIME)  --build-runnable $(MAIN)
         let mut pyret = self.pyret_cmd();
 
         pyret
-
             .arg("--compiled-dir")
             .arg(self.tmp_dir.join(compiled_path))
-
             .arg("--base-dir")
             .arg(self.tmp_dir.join(base_path))
-
             .arg("--type-check")
             .arg("true")
-
             .arg("--builtin-js-dir")
             .arg(self.pyret_runtime_dir.as_path())
-
             .arg("--build-runnable")
             .arg(root_arr_file);
 
@@ -208,8 +216,7 @@ impl TestEnv {
     pub fn run_pyret_cmd<S1: AsRef<Path>>(&self, module: S1) -> Command {
         let mut pyret = Command::new(&self.node_path);
 
-        pyret
-            .arg(self.tmp_dir.join(module));
+        pyret.arg(self.tmp_dir.join(module));
 
         pyret
     }
@@ -248,7 +255,7 @@ fn repeat<F: FnMut() -> io::Result<()>>(mut f: F) -> io::Result<()> {
     Err(last_err.unwrap())
 }
 
-pub fn line_separated_expected<T: IntoIterator<Item=I>, I: std::fmt::Display>(iter: T) -> String {
+pub fn line_separated_expected<T: IntoIterator<Item = I>, I: std::fmt::Display>(iter: T) -> String {
     let mut output = String::new();
 
     for t in iter.into_iter() {

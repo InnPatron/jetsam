@@ -1,20 +1,20 @@
 #[macro_use]
 mod macros;
-mod error;
-mod structures;
-mod type_structs;
-mod init_type_scope;
-mod type_construction;
-mod bind_init;
 mod bind_common;
 mod bind_graph_init;
-mod graph_reduce;
-mod typify_graph;
-mod js_pp;
-mod emit;
+mod bind_init;
 mod config;
-mod ts_flavor_detector;
+mod emit;
+mod error;
+mod graph_reduce;
+mod init_type_scope;
+mod js_pp;
+mod structures;
 mod ts_flavor_compat;
+mod ts_flavor_detector;
+mod type_construction;
+mod type_structs;
+mod typify_graph;
 
 use std::sync::Arc;
 
@@ -23,18 +23,16 @@ use swc_common::{
     SourceMap,
 };
 
-pub use self::config::GenConfig;
 pub use self::config::EmitConfig;
+pub use self::config::GenConfig;
 
-use crate::ts::TsFlavor;
 use crate::compile_opt;
+use crate::ts::TsFlavor;
 
 pub fn gen(options: compile_opt::CompileOpt) {
     swc_common::GLOBALS.set(&swc_common::Globals::new(), move || {
         let cm: Arc<SourceMap> = Default::default();
-        let handler =
-            Handler::with_tty_emitter(ColorConfig::Auto, true, false,
-Some(cm.clone()));
+        let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
 
         let cache = match bind_init::init(cm.clone(), handler, options.input_path.clone()) {
             Ok(c) => c,

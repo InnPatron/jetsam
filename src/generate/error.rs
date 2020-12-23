@@ -1,8 +1,8 @@
 use std::io::Error as IoError;
 use std::path::PathBuf;
 
-use swc_common::Span;
 use serde_json::error::Error as JsonError;
+use swc_common::Span;
 
 #[derive(Debug)]
 pub struct BindGenError {

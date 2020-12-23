@@ -1,9 +1,8 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GenConfig {
-
     /// Define functions that wrap class constructors (expiremental)
     /// Used by:
     ///     * TS-FULL
@@ -25,7 +24,6 @@ pub struct GenConfig {
     /// Serde name needs to be kept in sync with `OPTION_WRAP_TOP_LEVEL_VARS`
     #[serde(rename = "wrap-top-level-vars")]
     pub wrap_top_level_vars: bool,
-
 }
 
 impl Default for GenConfig {

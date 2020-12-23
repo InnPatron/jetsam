@@ -1,25 +1,16 @@
 use std::collections::HashMap;
 
-use swc_ecma_ast::*;
 use swc_atoms::JsWord;
 use swc_common::Span;
+use swc_ecma_ast::*;
 
 use super::bind_common;
+use super::bind_graph_init::{Export, Import, ModuleGraph as UTModuleGraph};
 use super::bind_init::{ModuleData, ParsedModuleCache as ModuleCache};
-use super::type_structs::*;
-use super::structures::{
-    Scope,
-    CanonPath,
-    ItemState,
-    ItemStateT,
-};
 use super::error::*;
-use super::bind_graph_init::{
-    ModuleGraph as UTModuleGraph,
-    Import,
-    Export,
-};
+use super::structures::{CanonPath, ItemState, ItemStateT, Scope};
 use super::type_construction as type_cons;
+use super::type_structs::*;
 
 pub fn typify(cache: &ModuleCache, ut_graph: UTModuleGraph) -> Result<ModuleGraph, BindGenError> {
     let mut graph = ModuleGraph {
@@ -67,23 +58,19 @@ struct NodeInitSession<'a, 'b> {
     rooted_values: HashMap<JsWord, Type>,
     rooted_types: HashMap<JsWord, Type>,
     generated_types: HashMap<JsWord, Type>,
-
 }
 
 macro_rules! get_dep_src {
     ($self: expr, $src_str: expr) => {
-        $self.dependency_map.get(&*$src_str.value).expect("Source path not found in dependency_map")
-    }
-
+        $self
+            .dependency_map
+            .get(&*$src_str.value)
+            .expect("Source path not found in dependency_map")
+    };
 }
 
 impl<'a, 'b> NodeInitSession<'a, 'b> {
-
-    fn init(
-        g: &mut ModuleGraph,
-        module_data: &ModuleData
-    ) -> Result<(), BindGenError> {
-
+    fn init(g: &mut ModuleGraph, module_data: &ModuleData) -> Result<(), BindGenError> {
         let type_scope = super::init_type_scope::init(module_data)?;
         let mut session = NodeInitSession {
             path: &module_data.path,
@@ -121,7 +108,6 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
 
     fn process_module_item(&mut self, item: &ModuleItem) -> Result<(), BindGenError> {
         match item {
-
             ModuleItem::ModuleDecl(ref decl) => self.process_module_decl(decl),
 
             ModuleItem::Stmt(ref stmt) => self.process_stmt(stmt),
@@ -138,68 +124,55 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
 
     fn process_module_decl(&mut self, module_decl: &ModuleDecl) -> Result<(), BindGenError> {
         match module_decl {
-
             ModuleDecl::Import(ref import) => {
-                let src_canon_path: &CanonPath =
-                    get_dep_src!(self, import.src);
+                let src_canon_path: &CanonPath = get_dep_src!(self, import.src);
 
                 for specifier in import.specifiers.iter() {
                     self.handle_import_specifier(src_canon_path, specifier)?;
                 }
 
                 Ok(())
-            },
+            }
 
-            ModuleDecl::ExportDecl(ExportDecl {
-                ref decl,
-                ..
-            }) => self.process_decl(decl, true),
+            ModuleDecl::ExportDecl(ExportDecl { ref decl, .. }) => self.process_decl(decl, true),
 
             ModuleDecl::ExportNamed(ref exp) => self.process_named_export(exp),
 
-            ModuleDecl::ExportAll(ExportAll {
-                ref src,
-                ..
-            }) => {
-                Ok(())
-            }
+            ModuleDecl::ExportAll(ExportAll { ref src, .. }) => Ok(()),
 
-            ModuleDecl::ExportDefaultDecl(..)
-                => unreachable!("Caught in bind init"),
+            ModuleDecl::ExportDefaultDecl(..) => unreachable!("Caught in bind init"),
 
-            ModuleDecl::ExportDefaultExpr(..)
-                => unreachable!("Caught in bind init"),
+            ModuleDecl::ExportDefaultExpr(..) => unreachable!("Caught in bind init"),
 
-            ModuleDecl::TsImportEquals(..)
-                => unreachable!("Caught in bind init"),
+            ModuleDecl::TsImportEquals(..) => unreachable!("Caught in bind init"),
 
-            ModuleDecl::TsExportAssignment(..)
-                => unreachable!("Caught in bind init"),
+            ModuleDecl::TsExportAssignment(..) => unreachable!("Caught in bind init"),
 
-            ModuleDecl::TsNamespaceExport(..)
-                => unreachable!("Caught in bind init"),
+            ModuleDecl::TsNamespaceExport(..) => unreachable!("Caught in bind init"),
         }
     }
 
-    fn prune_export_specifiers<'c, T>(&self, specifiers: T, exp_span: &Span)
-        -> Result<Vec<&'c ExportSpecifier>, BindGenError>
-            where T: Iterator<Item=&'c ExportSpecifier> {
-
+    fn prune_export_specifiers<'c, T>(
+        &self,
+        specifiers: T,
+        exp_span: &Span,
+    ) -> Result<Vec<&'c ExportSpecifier>, BindGenError>
+    where
+        T: Iterator<Item = &'c ExportSpecifier>,
+    {
         let mut buff = Vec::new();
         for spec in specifiers {
             match spec {
                 ExportSpecifier::Named(..) => {
                     buff.push(spec);
-                },
+                }
 
-                ExportSpecifier::Namespace(ExportNamespaceSpecifier {
-                    ref span,
-                    ..
-                }) => {
+                ExportSpecifier::Namespace(ExportNamespaceSpecifier { ref span, .. }) => {
                     return Err(BindGenError {
                         module_path: self.path.as_path().to_owned(),
                         kind: BindGenErrorKind::UnsupportedFeature(
-                                  UnsupportedFeature::NamespaceExport),
+                            UnsupportedFeature::NamespaceExport,
+                        ),
                         span: span.clone(),
                     });
                 }
@@ -208,7 +181,8 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                     return Err(BindGenError {
                         module_path: self.path.as_path().to_owned(),
                         kind: BindGenErrorKind::UnsupportedFeature(
-                                  UnsupportedFeature::DefaultExport),
+                            UnsupportedFeature::DefaultExport,
+                        ),
                         span: exp_span.clone(),
                     });
                 }
@@ -232,7 +206,6 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                             exported: ref exported_as,
                             ..
                         }) => {
-
                             let orig_key = orig.sym.clone();
                             let export_key = exported_as
                                 .as_ref()
@@ -243,17 +216,12 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                             //   item by adding an edge if it is an imported item
                             //   or by marking the item as rooted (under its export key)
 
-
                             // Handle types
                             if let Some(ref state) = self.type_scope.get(&orig_key) {
                                 if let ItemState::Rooted = state {
-                                    let rooted_type = self.generated_types
-                                        .get(&orig_key)
-                                        .unwrap();
-                                    self.rooted_values.insert(
-                                        export_key.clone(),
-                                        rooted_type.clone()
-                                    );
+                                    let rooted_type = self.generated_types.get(&orig_key).unwrap();
+                                    self.rooted_values
+                                        .insert(export_key.clone(), rooted_type.clone());
                                 }
                             }
 
@@ -263,7 +231,7 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                                     self.rooted_values.insert(export_key, typ.clone());
                                 }
                             }
-                        },
+                        }
 
                         _ => unreachable!("Invalid specifier should be pruned"),
                     }
@@ -275,15 +243,9 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
     }
 
     fn process_decl(&mut self, decl: &Decl, export: bool) -> Result<(), BindGenError> {
-
-
         match decl {
             Decl::Var(ref decl) => {
-                let vars = type_cons::construct_variable_types(
-                    self.path,
-                    self.type_scope,
-                    decl,
-                )?;
+                let vars = type_cons::construct_variable_types(self.path, self.type_scope, decl)?;
 
                 for (symbol, typ) in vars.into_iter() {
                     if export {
@@ -295,15 +257,9 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
             }
 
             Decl::Fn(ref decl) => {
-                let typ = type_cons::construct_fn_type(
-                    self.path,
-                    self.type_scope,
-                    &decl.function,
-                )?;
+                let typ = type_cons::construct_fn_type(self.path, self.type_scope, &decl.function)?;
 
-                let symbol = decl
-                    .ident
-                    .sym.clone();
+                let symbol = decl.ident.sym.clone();
 
                 if export {
                     self.rooted_values.insert(symbol.clone(), typ.clone());
@@ -312,15 +268,11 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                 self.scope_value(symbol, ItemStateT::Rooted(typ));
             }
 
-            decl @ Decl::Class(..) |
-            decl @ Decl::TsInterface(..) |
-            decl @ Decl::TsTypeAlias(..) |
-            decl @ Decl::TsEnum(..) => {
-                let typ = type_cons::construct_type(
-                    self.path,
-                    self.type_scope,
-                    decl
-                )?;
+            decl @ Decl::Class(..)
+            | decl @ Decl::TsInterface(..)
+            | decl @ Decl::TsTypeAlias(..)
+            | decl @ Decl::TsEnum(..) => {
+                let typ = type_cons::construct_type(self.path, self.type_scope, decl)?;
                 let ident = bind_common::get_decl_ident(decl);
 
                 self.generated_types.insert(ident.sym.clone(), typ.clone());
@@ -336,11 +288,13 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
         Ok(())
     }
 
-    fn handle_import_specifier(&mut self, source: &CanonPath, spec: &ImportSpecifier)
-        -> Result<(), BindGenError> {
+    fn handle_import_specifier(
+        &mut self,
+        source: &CanonPath,
+        spec: &ImportSpecifier,
+    ) -> Result<(), BindGenError> {
         match spec {
             ImportSpecifier::Named(ref named) => {
-
                 let src_key = named
                     .imported
                     .as_ref()
@@ -361,21 +315,17 @@ impl<'a, 'b> NodeInitSession<'a, 'b> {
                 Ok(())
             }
 
-            ImportSpecifier::Default(def) => {
-                Err(BindGenError {
-                    module_path: self.path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
-                    span: def.span,
-                })
-            }
+            ImportSpecifier::Default(def) => Err(BindGenError {
+                module_path: self.path.as_path().to_owned(),
+                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                span: def.span,
+            }),
 
-            ImportSpecifier::Namespace(namespace) => {
-                Err(BindGenError {
-                    module_path: self.path.as_path().to_owned(),
-                    kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
-                    span: namespace.span,
-                })
-            }
+            ImportSpecifier::Namespace(namespace) => Err(BindGenError {
+                module_path: self.path.as_path().to_owned(),
+                kind: BindGenErrorKind::UnsupportedFeature(UnsupportedFeature::DefaultImport),
+                span: namespace.span,
+            }),
         }
     }
 }
